@@ -32,21 +32,21 @@ SOLID is an acronym for five design principles that make software designs more u
 ```python
 class User:
     """VIOLATION: Too many responsibilities"""
-    
+
     def __init__(self, name, email):
         self.name = name
         self.email = email
-    
+
     def save_to_database(self):
         """Database responsibility"""
         # Database code
         pass
-    
+
     def send_email(self):
         """Email responsibility"""
         # Email code
         pass
-    
+
     def generate_report(self):
         """Reporting responsibility"""
         # Report generation code
@@ -54,6 +54,7 @@ class User:
 ```
 
 **Problems**:
+
 - Hard to test
 - Changes to email logic affect User class
 - Database changes affect User class
@@ -72,13 +73,13 @@ class User:
 class UserRepository:
     def __init__(self, database):
         self.database = database
-    
+
     def save(self, user):
         self.database.execute(
             "INSERT INTO users (name, email) VALUES (?, ?)",
             (user.name, user.email)
         )
-    
+
     def find_by_id(self, user_id):
         result = self.database.query(
             "SELECT * FROM users WHERE id = ?", (user_id,)
@@ -89,7 +90,7 @@ class UserRepository:
 class EmailService:
     def __init__(self, smtp_config):
         self.smtp_config = smtp_config
-    
+
     def send_welcome_email(self, user):
         # Send email logic
         pass
@@ -115,22 +116,22 @@ class OrderService:
     def __init__(self, payment_gateway, inventory):
         self.payment_gateway = payment_gateway
         self.inventory = inventory
-    
+
     def create_order(self, user, items):
         order = Order.objects.create(user=user, status='pending')
-        
+
         # Check inventory
         if not self.inventory.check_availability(items):
             raise OutOfStockError()
-        
+
         # Process payment
         payment = self.payment_gateway.charge(order.total)
-        
+
         if payment.success:
             order.status = 'paid'
             order.save()
             self.inventory.reserve_items(items)
-        
+
         return order
 
 # views.py - HTTP handling only
@@ -138,10 +139,10 @@ class OrderCreateView(APIView):
     def post(self, request):
         serializer = OrderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         service = OrderService(PaymentGateway(), InventoryService())
         order = service.create_order(request.user, serializer.validated_data)
-        
+
         return Response(OrderSerializer(order).data)
 ```
 
@@ -156,7 +157,7 @@ class OrderCreateView(APIView):
 ```python
 class PaymentProcessor:
     """VIOLATION: Must modify for each new payment type"""
-    
+
     def process_payment(self, amount, payment_type):
         if payment_type == "credit_card":
             # Credit card logic
@@ -204,7 +205,7 @@ class CryptoPayment(PaymentMethod):
 class PaymentProcessor:
     def __init__(self, payment_method: PaymentMethod):
         self.payment_method = payment_method
-    
+
     def process(self, amount):
         return self.payment_method.process(amount)
 
@@ -240,7 +241,7 @@ class EmailChannel(NotificationChannel):
 class SMSChannel(NotificationChannel):
     def __init__(self, twilio_client):
         self.twilio_client = twilio_client
-    
+
     def send(self, user, message):
         self.twilio_client.messages.create(
             to=user.phone,
@@ -260,7 +261,7 @@ class PushNotificationChannel(NotificationChannel):
 class NotificationService:
     def __init__(self, channels: List[NotificationChannel]):
         self.channels = channels
-    
+
     def notify(self, user, message):
         for channel in self.channels:
             try:
@@ -314,7 +315,7 @@ class Bird(ABC):
 class FlyingBird(Bird):
     def move(self):
         return self.fly()
-    
+
     def fly(self):
         return "Flying in the sky"
 
@@ -325,7 +326,7 @@ class Sparrow(FlyingBird):
 class Penguin(Bird):
     def move(self):
         return self.swim()
-    
+
     def swim(self):
         return "Penguin swimming"
 
@@ -390,13 +391,13 @@ class Rectangle:
     def __init__(self, width, height):
         self._width = width
         self._height = height
-    
+
     def set_width(self, width):
         self._width = width
-    
+
     def set_height(self, height):
         self._height = height
-    
+
     def area(self):
         return self._width * self._height
 
@@ -404,7 +405,7 @@ class Square(Rectangle):
     def set_width(self, width):
         self._width = width
         self._height = width  # Square constraint
-    
+
     def set_height(self, height):
         self._width = height  # Square constraint
         self._height = height
@@ -424,14 +425,14 @@ class Rectangle(Shape):
     def __init__(self, width, height):
         self.width = width
         self.height = height
-    
+
     def area(self):
         return self.width * self.height
 
 class Square(Shape):
     def __init__(self, side):
         self.side = side
-    
+
     def area(self):
         return self.side * self.side
 ```
@@ -449,15 +450,15 @@ from abc import ABC, abstractmethod
 
 class Worker(ABC):
     """VIOLATION: Forces implementations to define unused methods"""
-    
+
     @abstractmethod
     def work(self):
         pass
-    
+
     @abstractmethod
     def eat(self):
         pass
-    
+
     @abstractmethod
     def sleep(self):
         pass
@@ -465,20 +466,20 @@ class Worker(ABC):
 class HumanWorker(Worker):
     def work(self):
         return "Working"
-    
+
     def eat(self):
         return "Eating lunch"
-    
+
     def sleep(self):
         return "Sleeping"
 
 class RobotWorker(Worker):
     def work(self):
         return "Processing tasks"
-    
+
     def eat(self):
         pass  # Robots don't eat! Forced to implement
-    
+
     def sleep(self):
         pass  # Robots don't sleep! Forced to implement
 ```
@@ -508,10 +509,10 @@ class Sleepable(ABC):
 class HumanWorker(Workable, Eatable, Sleepable):
     def work(self):
         return "Working"
-    
+
     def eat(self):
         return "Eating lunch"
-    
+
     def sleep(self):
         return "Sleeping"
 
@@ -524,7 +525,7 @@ class SuperRobot(Workable, Sleepable):
     """Robot with power-saving mode"""
     def work(self):
         return "Processing"
-    
+
     def sleep(self):
         return "Power-saving mode"
 ```
@@ -537,15 +538,15 @@ class APIView(ABC):
     @abstractmethod
     def get(self, request):
         pass
-    
+
     @abstractmethod
     def post(self, request):
         pass
-    
+
     @abstractmethod
     def put(self, request):
         pass
-    
+
     @abstractmethod
     def delete(self, request):
         pass
@@ -553,14 +554,14 @@ class APIView(ABC):
 class ReadOnlyView(APIView):
     def get(self, request):
         return Response(data)
-    
+
     # Forced to implement unused methods
     def post(self, request):
         raise MethodNotAllowed("POST")
-    
+
     def put(self, request):
         raise MethodNotAllowed("PUT")
-    
+
     def delete(self, request):
         raise MethodNotAllowed("DELETE")
 
@@ -602,7 +603,8 @@ class UserDetailView(RetrieveModelMixin, GenericAPIView):
 
 ## 5️⃣ Dependency Inversion Principle (DIP)
 
-**Definition**: 
+**Definition**:
+
 - High-level modules should not depend on low-level modules. Both should depend on abstractions.
 - Abstractions should not depend on details. Details should depend on abstractions.
 
@@ -613,7 +615,7 @@ class MySQLDatabase:
     """Low-level module"""
     def connect(self):
         return "MySQL Connection"
-    
+
     def execute(self, query):
         return f"Executing: {query}"
 
@@ -621,7 +623,7 @@ class UserRepository:
     """High-level module depending on concrete implementation"""
     def __init__(self):
         self.database = MySQLDatabase()  # VIOLATION: Direct dependency
-    
+
     def get_user(self, user_id):
         return self.database.execute(f"SELECT * FROM users WHERE id={user_id}")
 
@@ -641,7 +643,7 @@ class Database(ABC):
     @abstractmethod
     def connect(self):
         pass
-    
+
     @abstractmethod
     def execute(self, query):
         pass
@@ -650,21 +652,21 @@ class Database(ABC):
 class MySQLDatabase(Database):
     def connect(self):
         return "MySQL Connection"
-    
+
     def execute(self, query):
         return f"MySQL: {query}"
 
 class PostgreSQLDatabase(Database):
     def connect(self):
         return "PostgreSQL Connection"
-    
+
     def execute(self, query):
         return f"PostgreSQL: {query}"
 
 class MongoDatabase(Database):
     def connect(self):
         return "MongoDB Connection"
-    
+
     def execute(self, query):
         return f"MongoDB: {query}"
 
@@ -672,10 +674,10 @@ class MongoDatabase(Database):
 class UserRepository:
     def __init__(self, database: Database):  # Dependency injection
         self.database = database
-    
+
     def get_user(self, user_id):
         return self.database.execute(f"SELECT * FROM users WHERE id={user_id}")
-    
+
     def save_user(self, user):
         return self.database.execute(f"INSERT INTO users VALUES (...)")
 
@@ -688,7 +690,7 @@ mongo_repo = UserRepository(MongoDatabase())
 class MockDatabase(Database):
     def connect(self):
         return "Mock"
-    
+
     def execute(self, query):
         return {"id": 1, "name": "Test User"}
 
@@ -705,7 +707,7 @@ class CacheService(ABC):
     @abstractmethod
     def get(self, key):
         pass
-    
+
     @abstractmethod
     def set(self, key, value, ttl=None):
         pass
@@ -719,17 +721,17 @@ class EmailService(ABC):
 class RedisCache(CacheService):
     def __init__(self, redis_client):
         self.redis = redis_client
-    
+
     def get(self, key):
         return self.redis.get(key)
-    
+
     def set(self, key, value, ttl=3600):
         self.redis.setex(key, ttl, value)
 
 class SMTPEmailService(EmailService):
     def __init__(self, smtp_config):
         self.config = smtp_config
-    
+
     def send(self, to, subject, body):
         # SMTP logic
         pass
@@ -757,23 +759,23 @@ async def create_user(
 ):
     # Use abstractions, not concrete implementations
     user = User(**user_data.dict())
-    
+
     # Cache user
     cache.set(f"user:{user.id}", user.json())
-    
+
     # Send welcome email
     email.send(user.email, "Welcome!", "Welcome to our platform")
-    
+
     return user
 
 # Testing is easy - just provide mock dependencies
 def test_create_user():
     async def mock_cache():
         return MockCache()
-    
+
     async def mock_email():
         return MockEmailService()
-    
+
     app.dependency_overrides[get_cache] = mock_cache
     app.dependency_overrides[get_email_service] = mock_email
 ```
@@ -809,20 +811,20 @@ class CheckoutView(APIView):
     def __init__(self, payment_gateway: PaymentGateway, notifier: NotificationService):
         self.payment_gateway = payment_gateway
         self.notifier = notifier
-    
+
     def post(self, request):
         # Use injected dependencies
         result = self.payment_gateway.charge(
             amount=request.data['amount'],
             card=request.data['card']
         )
-        
+
         if result.success:
             self.notifier.notify(
                 request.user,
                 Message("Payment Success", "Your payment was processed")
             )
-        
+
         return Response(result)
 
 # settings.py or dependency injection container
@@ -857,7 +859,7 @@ class InventoryService(ABC):
     @abstractmethod
     def check_availability(self, product_id: str, quantity: int) -> bool:
         pass
-    
+
     @abstractmethod
     def reserve_items(self, product_id: str, quantity: int) -> None:
         pass
@@ -876,7 +878,7 @@ class Order:
         self.items = items
         self.status = "pending"
         self.total = self._calculate_total()
-    
+
     def _calculate_total(self) -> Decimal:
         return sum(Decimal(str(item['price'])) * item['quantity'] for item in self.items)
 
@@ -884,13 +886,13 @@ class OrderRepository:
     """Responsible for data persistence only"""
     def __init__(self, database):
         self.database = database
-    
+
     def save(self, order: Order) -> None:
         self.database.execute(
             "INSERT INTO orders (id, user_id, total, status) VALUES (?, ?, ?, ?)",
             (order.order_id, order.user_id, order.total, order.status)
         )
-    
+
     def find_by_id(self, order_id: str) -> Order:
         # Fetch and construct Order
         pass
@@ -936,44 +938,44 @@ class OrderService:
         self.payment = payment
         self.inventory = inventory
         self.notifier = notifier
-    
+
     def create_order(self, user_id: str, items: List[dict]) -> Order:
         """SRP: This method only coordinates the order creation flow"""
-        
+
         # Create order
         order = Order(
             order_id=self._generate_id(),
             user_id=user_id,
             items=items
         )
-        
+
         # Check inventory
         for item in items:
             if not self.inventory.check_availability(item['product_id'], item['quantity']):
                 raise ValueError(f"Product {item['product_id']} not available")
-        
+
         # Process payment
         if not self.payment.process_payment(order.total):
             raise ValueError("Payment failed")
-        
+
         # Reserve inventory
         for item in items:
             self.inventory.reserve_items(item['product_id'], item['quantity'])
-        
+
         # Update order status
         order.status = "confirmed"
-        
+
         # Save order
         self.repository.save(order)
-        
+
         # Notify user
         self.notifier.send_notification(
             user_id,
             f"Order {order.order_id} confirmed"
         )
-        
+
         return order
-    
+
     def _generate_id(self) -> str:
         import uuid
         return str(uuid.uuid4())
@@ -1011,13 +1013,15 @@ test_service = OrderService(
 ### Q3: How does Dependency Inversion relate to Dependency Injection?
 
 **Answer**:
+
 - **Dependency Inversion**: Design principle (depend on abstractions)
 - **Dependency Injection**: Implementation technique (inject dependencies)
-DI is one way to achieve DIP. Dependencies are provided (injected) from outside rather than created internally.
+  DI is one way to achieve DIP. Dependencies are provided (injected) from outside rather than created internally.
 
 ### Q4: When might you violate SOLID principles?
 
 **Answer**: SOLID principles are guidelines, not laws. Valid reasons to violate:
+
 - **Performance**: Sometimes abstraction has overhead
 - **Simplicity**: Over-engineering simple code
 - **Prototyping**: Rapid development phase
@@ -1042,6 +1046,7 @@ SOLID principles create maintainable, scalable code:
 5. **DIP**: Depend on abstractions, inject dependencies
 
 **Key Takeaways**:
+
 - SOLID makes code testable, maintainable, scalable
 - Use abstraction and dependency injection
 - Django and FastAPI follow these principles

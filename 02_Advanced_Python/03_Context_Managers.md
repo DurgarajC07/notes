@@ -12,12 +12,12 @@ class FileManager:
         self.filename = filename
         self.mode = mode
         self.file = None
-    
+
     def __enter__(self):
         """Called when entering 'with' block"""
         self.file = open(self.filename, self.mode)
         return self.file
-    
+
     def __exit__(self, exc_type, exc_value, traceback):
         """Called when exiting 'with' block"""
         if self.file:
@@ -77,14 +77,14 @@ class ContextManagerExample:
         print("1. __enter__ called")
         print("2. Acquiring resource")
         return self  # or any object you want to work with
-    
+
     def __exit__(self, exc_type, exc_value, traceback):
         print("4. __exit__ called")
         print(f"   Exception type: {exc_type}")
         print(f"   Exception value: {exc_value}")
         print(f"   Traceback: {traceback}")
         print("5. Releasing resource")
-        
+
         # Return True to suppress exception
         # Return False (or None) to propagate exception
         return False
@@ -111,7 +111,7 @@ with ContextManagerExample() as cm:
 class ExceptionHandler:
     def __enter__(self):
         return self
-    
+
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is ValueError:
             print("Handling ValueError")
@@ -215,7 +215,7 @@ from contextlib import ExitStack
 def process_files(filenames):
     with ExitStack() as stack:
         files = [stack.enter_context(open(fname)) for fname in filenames]
-        
+
         # All files automatically closed
         for f in files:
             process(f)
@@ -228,14 +228,14 @@ import threading
 
 class ReentrantLock:
     """Context manager that can be acquired multiple times by same thread"""
-    
+
     def __init__(self):
         self.lock = threading.RLock()
-    
+
     def __enter__(self):
         self.lock.acquire()
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.lock.release()
         return False
@@ -253,7 +253,7 @@ recursive_function(3)  # Works! Regular locks would deadlock
 
 ## ❌ Common Mistakes
 
-### 1. Not Returning Value from __enter__
+### 1. Not Returning Value from **enter**
 
 ```python
 # WRONG - __enter__ should return something
@@ -261,7 +261,7 @@ class BadContextManager:
     def __enter__(self):
         self.resource = acquire_resource()
         # Missing return!
-    
+
     def __exit__(self, *args):
         release_resource(self.resource)
 
@@ -273,19 +273,19 @@ class GoodContextManager:
     def __enter__(self):
         self.resource = acquire_resource()
         return self.resource  # Return the resource
-    
+
     def __exit__(self, *args):
         release_resource(self.resource)
 ```
 
-### 2. Forgetting Exception Parameters in __exit__
+### 2. Forgetting Exception Parameters in **exit**
 
 ```python
 # WRONG - Missing required parameters
 class WrongExitSignature:
     def __enter__(self):
         return self
-    
+
     def __exit__(self):  # Missing parameters!
         cleanup()
 
@@ -293,7 +293,7 @@ class WrongExitSignature:
 class CorrectExitSignature:
     def __enter__(self):
         return self
-    
+
     def __exit__(self, exc_type, exc_value, traceback):
         cleanup()
         return False
@@ -306,7 +306,7 @@ class CorrectExitSignature:
 class BadCleanup:
     def __enter__(self):
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.file.close()  # May raise if file doesn't exist
         return False
@@ -315,7 +315,7 @@ class BadCleanup:
 class GoodCleanup:
     def __enter__(self):
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         try:
             if hasattr(self, 'file'):
@@ -365,10 +365,10 @@ def secure_file(filename, mode='r'):
         stats = os.stat(filename)
         if stats.st_uid != os.getuid():
             raise PermissionError("File not owned by current user")
-    
+
     # Set secure umask for file creation
     old_umask = os.umask(0o077)
-    
+
     try:
         f = open(filename, mode)
         try:
@@ -393,12 +393,12 @@ class ConnectionPool:
     def __init__(self, maxsize=10, **conn_params):
         self.pool = Queue(maxsize=maxsize)
         self.conn_params = conn_params
-        
+
         # Initialize pool
         for _ in range(maxsize):
             conn = psycopg2.connect(**conn_params)
             self.pool.put(conn)
-    
+
     @contextmanager
     def connection(self, timeout=5):
         """Get connection from pool"""
@@ -434,19 +434,19 @@ class RateLimiter:
         self.calls_per_second = calls_per_second
         self.last_call = defaultdict(float)
         self.lock = Lock()
-    
+
     @contextmanager
     def limit(self, key="default"):
         """Rate limit context manager"""
         with self.lock:
             now = time.time()
             time_since_last = now - self.last_call[key]
-            
+
             if time_since_last < 1.0 / self.calls_per_second:
                 time.sleep(1.0 / self.calls_per_second - time_since_last)
-            
+
             self.last_call[key] = time.time()
-        
+
         yield
 
 # Usage
@@ -468,20 +468,20 @@ from functools import lru_cache
 class ResourcePool:
     def __init__(self):
         self.resources = {}
-    
+
     @contextmanager
     def get_resource(self, resource_id):
         """Get or create resource"""
         if resource_id not in self.resources:
             self.resources[resource_id] = self._create_resource(resource_id)
-        
+
         resource = self.resources[resource_id]
         try:
             yield resource
         finally:
             # Keep resource in pool for reuse
             pass
-    
+
     def _create_resource(self, resource_id):
         """Expensive resource creation"""
         print(f"Creating resource {resource_id}")
@@ -507,14 +507,14 @@ class LazyConnection:
     def __init__(self, conn_string):
         self.conn_string = conn_string
         self._connection = None
-    
+
     @contextmanager
     def connect(self):
         """Lazy connection - only connects when needed"""
         if self._connection is None:
             print("Establishing connection...")
             self._connection = create_connection(self.conn_string)
-        
+
         try:
             yield self._connection
         except Exception:
@@ -573,7 +573,7 @@ def temporary_env_var(key, value):
     """Temporarily set environment variable"""
     old_value = os.environ.get(key)
     os.environ[key] = value
-    
+
     try:
         yield
     finally:
@@ -663,7 +663,7 @@ from django.db import transaction
 def atomic_with_retry(max_retries=3):
     """Transaction with automatic retry on deadlock"""
     from django.db.utils import OperationalError
-    
+
     for attempt in range(max_retries):
         try:
             with transaction.atomic():
@@ -727,7 +727,7 @@ def redis_lock(redis_client, lock_name, timeout=10):
     """Distributed lock using Redis"""
     identifier = str(uuid.uuid4())
     lock_key = f"lock:{lock_name}"
-    
+
     # Acquire lock
     end_time = time.time() + timeout
     while time.time() < end_time:
@@ -736,7 +736,7 @@ def redis_lock(redis_client, lock_name, timeout=10):
         time.sleep(0.001)
     else:
         raise Exception(f"Could not acquire lock: {lock_name}")
-    
+
     try:
         yield identifier
     finally:
@@ -785,7 +785,7 @@ def temporary_file(suffix='', prefix='tmp', dir=None):
 with temporary_file(suffix='.txt') as temp_path:
     with open(temp_path, 'w') as f:
         f.write('Temporary data')
-    
+
     process_file(temp_path)
 # File automatically deleted
 ```
@@ -802,10 +802,10 @@ import os
 def s3_file_context(bucket, key):
     """Download S3 file to temp location and clean up"""
     s3 = boto3.client('s3')
-    
+
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
         tmp_path = tmp.name
-    
+
     try:
         s3.download_file(bucket, key, tmp_path)
         yield tmp_path
@@ -830,6 +830,7 @@ with s3_file_context('my-bucket', 'data/file.csv') as local_path:
 ### Q2: How do you create a context manager?
 
 **Answer**: Two ways:
+
 1. **Class-based**: Implement `__enter__()` and `__exit__()`
 2. **Generator-based**: Use `@contextmanager` decorator with yield
 
@@ -853,9 +854,10 @@ def my_context():
         cleanup()
 ```
 
-### Q3: What are the parameters of __exit__?
+### Q3: What are the parameters of **exit**?
 
 **Answer**: Three parameters capturing exception information:
+
 - `exc_type`: Exception class (or None)
 - `exc_value`: Exception instance (or None)
 - `traceback`: Traceback object (or None)
@@ -951,15 +953,15 @@ except FileNotFoundError:
 ```python
 class DatabaseConnection:
     """RAII pattern - resource lifetime tied to object lifetime"""
-    
+
     def __init__(self, connection_string):
         self.connection_string = connection_string
         self.connection = None
-    
+
     def __enter__(self):
         self.connection = create_connection(self.connection_string)
         return self.connection
-    
+
     def __exit__(self, *args):
         if self.connection:
             self.connection.close()
@@ -975,12 +977,14 @@ with DatabaseConnection("postgresql://localhost/db") as conn:
 ## 📚 Summary
 
 Context managers provide elegant resource management:
+
 - Guaranteed cleanup even with exceptions
 - Clean, readable code
 - Prevents resource leaks
 - Essential for files, locks, transactions, connections
 
 **Key Takeaways**:
+
 1. Use `with` statement for automatic resource management
 2. Implement `__enter__` and `__exit__` for class-based managers
 3. Use `@contextmanager` decorator for simple cases

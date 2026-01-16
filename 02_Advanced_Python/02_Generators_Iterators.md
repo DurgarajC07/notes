@@ -7,6 +7,7 @@ Generators and iterators are Python's way of handling sequences of data without 
 ### Iterators
 
 An iterator is an object that implements:
+
 - `__iter__()` - Returns the iterator object itself
 - `__next__()` - Returns the next value or raises `StopIteration`
 
@@ -15,10 +16,10 @@ class Counter:
     def __init__(self, start, end):
         self.current = start
         self.end = end
-    
+
     def __iter__(self):
         return self
-    
+
     def __next__(self):
         if self.current >= self.end:
             raise StopIteration
@@ -341,16 +342,16 @@ except StopIteration as e:
 ```python
 class DatabaseConnection:
     """Properly close resources in generators"""
-    
+
     def __init__(self, db_name):
         self.db_name = db_name
         self.connection = None
-    
+
     def __enter__(self):
         print(f"Opening {self.db_name}")
         self.connection = f"Connection to {self.db_name}"
         return self
-    
+
     def __exit__(self, *args):
         print(f"Closing {self.db_name}")
         self.connection = None
@@ -437,7 +438,7 @@ def process_large_file(filename):
             if not chunk:
                 break
             yield chunk
-    
+
     with open(filename, 'rb') as f:
         for chunk in read_chunks(f):
             # Process chunk
@@ -547,16 +548,16 @@ def sliding_window(iterable, window_size):
     """Generate sliding windows over iterable"""
     iterator = iter(iterable)
     window = deque(maxlen=window_size)
-    
+
     # Fill initial window
     for _ in range(window_size):
         try:
             window.append(next(iterator))
         except StopIteration:
             return
-    
+
     yield list(window)
-    
+
     # Slide window
     for item in iterator:
         window.append(item)
@@ -578,18 +579,18 @@ for window in sliding_window(data, 3):
 def state_machine():
     """Simple state machine using generator"""
     state = "START"
-    
+
     while True:
         if state == "START":
             print("Starting...")
             command = yield "Waiting for input"
             state = "PROCESSING" if command == "start" else "START"
-        
+
         elif state == "PROCESSING":
             print("Processing...")
             command = yield "Processing data"
             state = "COMPLETE" if command == "finish" else "PROCESSING"
-        
+
         elif state == "COMPLETE":
             print("Complete!")
             yield "Done"
@@ -652,13 +653,13 @@ def fetch_users_paginated(page_size=100):
     while True:
         # Query database
         users = User.objects.all()[offset:offset + page_size]
-        
+
         if not users:
             break
-        
+
         for user in users:
             yield user
-        
+
         offset += page_size
 
 # Process millions of users without memory issues
@@ -675,7 +676,7 @@ import json
 def stream_api_responses(url):
     """Stream large API responses"""
     response = requests.get(url, stream=True)
-    
+
     for line in response.iter_lines():
         if line:
             data = json.loads(line)
@@ -724,11 +725,11 @@ def transform_data(records):
         # Data cleaning
         record['email'] = record['email'].lower().strip()
         record['age'] = int(record['age'])
-        
+
         # Data validation
         if '@' not in record['email']:
             continue
-        
+
         yield record
 
 def load_to_database(records, batch_size=1000):
@@ -736,14 +737,14 @@ def load_to_database(records, batch_size=1000):
     batch = []
     for record in records:
         batch.append(record)
-        
+
         if len(batch) >= batch_size:
             User.objects.bulk_create([
                 User(**record) for record in batch
             ])
             batch.clear()
             yield f"Loaded {batch_size} records"
-    
+
     # Load remaining records
     if batch:
         User.objects.bulk_create([
@@ -773,31 +774,31 @@ def crawl_website(start_url, max_pages=100):
     """Crawl website and yield pages"""
     visited = set()
     to_visit = [start_url]
-    
+
     while to_visit and len(visited) < max_pages:
         url = to_visit.pop(0)
-        
+
         if url in visited:
             continue
-        
+
         try:
             response = requests.get(url, timeout=5)
             visited.add(url)
-            
+
             soup = BeautifulSoup(response.content, 'html.parser')
-            
+
             # Find new links
             for link in soup.find_all('a', href=True):
                 absolute_url = urljoin(url, link['href'])
                 if urlparse(absolute_url).netloc == urlparse(start_url).netloc:
                     to_visit.append(absolute_url)
-            
+
             yield {
                 'url': url,
                 'title': soup.title.string if soup.title else None,
                 'content': soup.get_text()
             }
-        
+
         except Exception as e:
             print(f"Error crawling {url}: {e}")
 
@@ -811,6 +812,7 @@ for page in crawl_website('https://example.com', max_pages=50):
 ### Q1: What's the difference between a generator and a regular function?
 
 **Answer**:
+
 - **Regular function**: Uses `return`, executes completely, returns once
 - **Generator function**: Uses `yield`, can pause/resume, returns multiple times
 - Generators maintain state between calls
@@ -823,6 +825,7 @@ for page in crawl_website('https://example.com', max_pages=50):
 ### Q3: What's the difference between `yield` and `return`?
 
 **Answer**:
+
 ```python
 def with_return():
     return 1
@@ -891,11 +894,12 @@ print(next(gen))  # StopIteration exception
 ### Q7: How would you implement `range()` as a generator?
 
 **Answer**:
+
 ```python
 def my_range(start, stop=None, step=1):
     if stop is None:
         start, stop = 0, start
-    
+
     current = start
     while (step > 0 and current < stop) or (step < 0 and current > stop):
         yield current
@@ -908,6 +912,7 @@ list(my_range(2, 10, 2))  # [2, 4, 6, 8]
 ### Q8: What's the difference between a generator expression and a list comprehension?
 
 **Answer**:
+
 ```python
 # List comprehension - creates entire list in memory
 squares_list = [x**2 for x in range(1000)]  # ~8KB
@@ -931,22 +936,22 @@ print(sum(squares_gen))  # Returns 0 (exhausted)
 ```python
 class BookCollection:
     """Iterable collection of books"""
-    
+
     def __init__(self):
         self._books = []
-    
+
     def add_book(self, book):
         self._books.append(book)
-    
+
     def __iter__(self):
         """Return iterator for books"""
         return iter(self._books)
-    
+
     def reverse_iterator(self):
         """Custom iterator for reverse traversal"""
         for book in reversed(self._books):
             yield book
-    
+
     def filter_iterator(self, condition):
         """Custom iterator with filter"""
         for book in self._books:
@@ -976,12 +981,14 @@ for book in collection.filter_iterator(lambda b: b['year'] >= 2017):
 ## 📚 Summary
 
 Generators and iterators are essential for:
+
 - Memory-efficient data processing
 - Lazy evaluation and on-demand computation
 - Streaming and pipeline architectures
 - Handling large datasets and infinite sequences
 
 **Key Takeaways**:
+
 1. Use generators for large datasets
 2. Generator expressions for simple cases
 3. `yield from` for generator delegation

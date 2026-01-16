@@ -12,11 +12,11 @@ class Descriptor:
         """Called when attribute is accessed"""
         print(f"__get__ called on {instance} from {owner}")
         return "value"
-    
+
     def __set__(self, instance, value):
         """Called when attribute is assigned"""
         print(f"__set__ called with {value}")
-    
+
     def __delete__(self, instance):
         """Called when attribute is deleted"""
         print(f"__delete__ called")
@@ -37,7 +37,7 @@ del obj.attr       # Calls __delete__
 class DataDescriptor:
     def __get__(self, instance, owner):
         return "data"
-    
+
     def __set__(self, instance, value):
         pass
 
@@ -56,19 +56,19 @@ class NonDataDescriptor:
 class Person:
     def __init__(self, name):
         self._name = name
-    
+
     @property
     def name(self):
         """Getter method"""
         return self._name
-    
+
     @name.setter
     def name(self, value):
         """Setter method with validation"""
         if not isinstance(value, str):
             raise TypeError("Name must be a string")
         self._name = value
-    
+
     @name.deleter
     def name(self):
         """Deleter method"""
@@ -105,7 +105,7 @@ del person.name         # Calls deleter
 class DataDesc:
     def __get__(self, instance, owner):
         return "data descriptor"
-    
+
     def __set__(self, instance, value):
         pass
 
@@ -134,32 +134,32 @@ print(obj.non_data_desc)  # "instance value" (instance wins)
 # property() is implemented as a descriptor
 class Property:
     """Simplified property implementation"""
-    
+
     def __init__(self, fget=None, fset=None, fdel=None):
         self.fget = fget
         self.fset = fset
         self.fdel = fdel
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         if self.fget is None:
             raise AttributeError("unreadable attribute")
         return self.fget(instance)
-    
+
     def __set__(self, instance, value):
         if self.fset is None:
             raise AttributeError("can't set attribute")
         self.fset(instance, value)
-    
+
     def __delete__(self, instance):
         if self.fdel is None:
             raise AttributeError("can't delete attribute")
         self.fdel(instance)
-    
+
     def setter(self, fset):
         return type(self)(self.fget, fset, self.fdel)
-    
+
     def deleter(self, fdel):
         return type(self)(self.fget, self.fset, fdel)
 ```
@@ -171,16 +171,16 @@ class Property:
 ```python
 class TypedAttribute:
     """Descriptor that enforces type checking"""
-    
+
     def __init__(self, name, expected_type):
         self.name = name
         self.expected_type = expected_type
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         return instance.__dict__.get(self.name)
-    
+
     def __set__(self, instance, value):
         if not isinstance(value, self.expected_type):
             raise TypeError(
@@ -192,7 +192,7 @@ class TypedAttribute:
 class Person:
     name = TypedAttribute('name', str)
     age = TypedAttribute('age', int)
-    
+
     def __init__(self, name, age):
         self.name = name
         self.age = age
@@ -206,28 +206,28 @@ person = Person("Alice", 30)
 ```python
 class LazyProperty:
     """Compute value only once, then cache"""
-    
+
     def __init__(self, func):
         self.func = func
         self.name = func.__name__
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        
+
         # Check if already computed
         value = instance.__dict__.get(self.name)
         if value is None:
             # Compute and cache
             value = self.func(instance)
             instance.__dict__[self.name] = value
-        
+
         return value
 
 class DataProcessor:
     def __init__(self, data):
         self.data = data
-    
+
     @LazyProperty
     def expensive_computation(self):
         """Computed only on first access"""
@@ -246,16 +246,16 @@ print(processor.expensive_computation)  # Returns cached 15 immediately
 ```python
 class ValidatedProperty:
     """Property with multiple validation rules"""
-    
+
     def __init__(self, name, *validators):
         self.name = name
         self.validators = validators
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         return instance.__dict__.get(self.name)
-    
+
     def __set__(self, instance, value):
         # Run all validators
         for validator in self.validators:
@@ -277,7 +277,7 @@ def is_number(value):
 class Product:
     price = ValidatedProperty('price', is_number, positive)
     quantity = ValidatedProperty('quantity', is_number, positive, less_than_100)
-    
+
     def __init__(self, price, quantity):
         self.price = price
         self.quantity = quantity
@@ -291,13 +291,13 @@ product = Product(19.99, 50)
 ```python
 class ReadOnly:
     """Descriptor for read-only attributes"""
-    
+
     def __init__(self, value):
         self._value = value
-    
+
     def __get__(self, instance, owner):
         return self._value
-    
+
     def __set__(self, instance, value):
         raise AttributeError("Cannot modify read-only attribute")
 
@@ -318,37 +318,37 @@ from functools import wraps
 
 class CachedProperty:
     """Property with time-based cache expiration"""
-    
+
     def __init__(self, ttl=60):
         self.ttl = ttl
         self.func = None
-    
+
     def __call__(self, func):
         self.func = func
         return self
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        
+
         cache_attr = f'_cache_{self.func.__name__}'
         time_attr = f'_time_{self.func.__name__}'
-        
+
         cached_value = getattr(instance, cache_attr, None)
         cached_time = getattr(instance, time_attr, None)
-        
+
         now = time.time()
-        
+
         # Return cached value if not expired
         if cached_value is not None and cached_time is not None:
             if now - cached_time < self.ttl:
                 return cached_value
-        
+
         # Compute new value
         value = self.func(instance)
         setattr(instance, cache_attr, value)
         setattr(instance, time_attr, now)
-        
+
         return value
 
 class WeatherAPI:
@@ -373,11 +373,11 @@ print(api.current_temperature)  # Cache expired, fetches again
 class Wrong:
     def __init__(self, value):
         self._value = value
-    
+
     @property
     def value(self):
         return self._value
-    
+
     @value.setter
     def value(self, val):
         self._value = val
@@ -401,10 +401,10 @@ class Builder:
 class BadDescriptor:
     def __init__(self):
         self.value = None  # BAD! Shared state
-    
+
     def __get__(self, instance, owner):
         return self.value
-    
+
     def __set__(self, instance, value):
         self.value = value
 
@@ -412,12 +412,12 @@ class BadDescriptor:
 class GoodDescriptor:
     def __init__(self, name):
         self.name = name
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         return instance.__dict__.get(self.name)
-    
+
     def __set__(self, instance, value):
         instance.__dict__[self.name] = value
 ```
@@ -453,25 +453,25 @@ import html
 
 class SanitizedString:
     """Descriptor that sanitizes string input"""
-    
+
     def __init__(self, name, max_length=255):
         self.name = name
         self.max_length = max_length
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         return instance.__dict__.get(self.name)
-    
+
     def __set__(self, instance, value):
         if not isinstance(value, str):
             raise TypeError(f"{self.name} must be a string")
-        
+
         # Sanitize
         value = html.escape(value)  # Escape HTML
         value = value[:self.max_length]  # Limit length
         value = re.sub(r'[^\w\s-]', '', value)  # Remove special chars
-        
+
         instance.__dict__[self.name] = value
 
 class UserProfile:
@@ -490,25 +490,25 @@ import hashlib
 
 class PasswordProperty:
     """Descriptor for secure password handling"""
-    
+
     def __init__(self, name):
         self.name = name
         self.hash_name = f'_{name}_hash'
-    
+
     def __get__(self, instance, owner):
         raise AttributeError("Password is write-only")
-    
+
     def __set__(self, instance, value):
         if not isinstance(value, str):
             raise TypeError("Password must be a string")
-        
+
         if len(value) < 8:
             raise ValueError("Password must be at least 8 characters")
-        
+
         # Hash password
         hashed = hashlib.sha256(value.encode()).hexdigest()
         instance.__dict__[self.hash_name] = hashed
-    
+
     def verify(self, instance, password):
         """Verify password against stored hash"""
         hashed = hashlib.sha256(password.encode()).hexdigest()
@@ -516,7 +516,7 @@ class PasswordProperty:
 
 class User:
     password = PasswordProperty('password')
-    
+
     def check_password(self, password):
         return User.password.verify(self, password)
 
@@ -535,15 +535,15 @@ import weakref
 
 class WeakRefDescriptor:
     """Descriptor using weak references to save memory"""
-    
+
     def __init__(self):
         self.data = weakref.WeakKeyDictionary()
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         return self.data.get(instance)
-    
+
     def __set__(self, instance, value):
         self.data[instance] = value
 
@@ -559,16 +559,16 @@ class LargeObject:
 class SlottedDescriptor:
     """Use __slots__ for memory efficiency"""
     __slots__ = ('name', 'validator')
-    
+
     def __init__(self, name, validator=None):
         self.name = name
         self.validator = validator
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         return getattr(instance, f'_{self.name}', None)
-    
+
     def __set__(self, instance, value):
         if self.validator:
             self.validator(value)
@@ -586,17 +586,17 @@ class OptimizedClass:
 ```python
 class RangeValidated:
     """Descriptor with min/max validation"""
-    
+
     def __init__(self, name, min_value=None, max_value=None):
         self.name = name
         self.min_value = min_value
         self.max_value = max_value
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         return instance.__dict__.get(self.name)
-    
+
     def __set__(self, instance, value):
         if self.min_value is not None and value < self.min_value:
             raise ValueError(f"{self.name} must be >= {self.min_value}")
@@ -606,7 +606,7 @@ class RangeValidated:
 
 class Temperature:
     celsius = RangeValidated('celsius', min_value=-273.15, max_value=None)
-    
+
     def __init__(self, celsius):
         self.celsius = celsius
 
@@ -619,30 +619,30 @@ temp = Temperature(25)
 ```python
 class HistoryDescriptor:
     """Track all changes to an attribute"""
-    
+
     def __init__(self, name):
         self.name = name
         self.history_name = f'_{name}_history'
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         history = instance.__dict__.get(self.history_name, [])
         return history[-1] if history else None
-    
+
     def __set__(self, instance, value):
         history = instance.__dict__.setdefault(self.history_name, [])
         history.append(value)
-    
+
     def get_history(self, instance):
         return instance.__dict__.get(self.history_name, [])
 
 class Account:
     balance = HistoryDescriptor('balance')
-    
+
     def __init__(self, initial_balance):
         self.balance = initial_balance
-    
+
     def get_balance_history(self):
         return Account.balance.get_history(self)
 
@@ -658,35 +658,35 @@ print(account.get_balance_history())  # [1000, 1500, 1200]
 ```python
 class Distance:
     """Descriptor with automatic unit conversion"""
-    
+
     def __init__(self, name):
         self.name = name
         self.meters_name = f'_{name}_meters'
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         return instance.__dict__.get(self.meters_name, 0)
-    
+
     def __set__(self, instance, value):
         # Store in meters
         instance.__dict__[self.meters_name] = value
-    
+
     def kilometers(self, instance):
         return self.__get__(instance, None) / 1000
-    
+
     def miles(self, instance):
         return self.__get__(instance, None) * 0.000621371
 
 class Route:
     distance = Distance('distance')
-    
+
     def __init__(self, meters):
         self.distance = meters
-    
+
     def distance_km(self):
         return Route.distance.kilometers(self)
-    
+
     def distance_miles(self):
         return Route.distance.miles(self)
 
@@ -703,28 +703,28 @@ print(f"{route.distance_miles()}miles")
 ```python
 class Field:
     """Simplified Django field descriptor"""
-    
+
     def __init__(self, field_type, max_length=None, default=None):
         self.field_type = field_type
         self.max_length = max_length
         self.default = default
-    
+
     def __set_name__(self, owner, name):
         """Called when descriptor is assigned to class"""
         self.name = name
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         return instance.__dict__.get(self.name, self.default)
-    
+
     def __set__(self, instance, value):
         if not isinstance(value, self.field_type):
             raise TypeError(f"Expected {self.field_type.__name__}")
-        
+
         if self.max_length and len(value) > self.max_length:
             raise ValueError(f"Max length is {self.max_length}")
-        
+
         instance.__dict__[self.name] = value
 
 class CharField(Field):
@@ -745,29 +745,29 @@ class User:
 ```python
 class Column:
     """Simplified SQLAlchemy column descriptor"""
-    
+
     def __init__(self, type_, nullable=True, default=None):
         self.type = type_
         self.nullable = nullable
         self.default = default
-    
+
     def __set_name__(self, owner, name):
         self.name = name
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         return instance.__dict__.get(self.name, self.default)
-    
+
     def __set__(self, instance, value):
         if value is None and not self.nullable:
             raise ValueError(f"{self.name} cannot be null")
-        
+
         if value is not None and not isinstance(value, self.type):
             raise TypeError(
                 f"{self.name} must be {self.type.__name__}"
             )
-        
+
         instance.__dict__[self.name] = value
 
 class User:
@@ -785,6 +785,7 @@ class User:
 ### Q2: What's the difference between data and non-data descriptors?
 
 **Answer**:
+
 - **Data descriptor**: Defines `__get__` AND `__set__` or `__delete__`
 - **Non-data descriptor**: Defines only `__get__`
 - **Priority**: Data descriptors override instance `__dict__`, non-data don't
@@ -796,6 +797,7 @@ class User:
 ### Q4: When would you use a descriptor over @property?
 
 **Answer**: Use descriptors when:
+
 - Need reusable validation logic across multiple classes
 - Want to share descriptor logic
 - Building frameworks/ORMs
@@ -803,7 +805,7 @@ class User:
 
 Use @property for simple, class-specific cases.
 
-### Q5: What is __set_name__ and when is it called?
+### Q5: What is **set_name** and when is it called?
 
 **Answer**: `__set_name__(self, owner, name)` is called when a descriptor is assigned to a class attribute. It receives the owner class and attribute name, useful for storing the name.
 
@@ -845,35 +847,35 @@ def __get__(self, instance, owner):
 ```python
 class Observable:
     """Descriptor that notifies observers of changes"""
-    
+
     def __init__(self, name):
         self.name = name
         self.observers_name = f'_{name}_observers'
-    
+
     def __set_name__(self, owner, name):
         self.name = name
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         return instance.__dict__.get(self.name)
-    
+
     def __set__(self, instance, value):
         old_value = instance.__dict__.get(self.name)
         instance.__dict__[self.name] = value
-        
+
         # Notify observers
         observers = instance.__dict__.get(self.observers_name, [])
         for observer in observers:
             observer(old_value, value)
-    
+
     def add_observer(self, instance, observer):
         observers = instance.__dict__.setdefault(self.observers_name, [])
         observers.append(observer)
 
 class Model:
     value = Observable('value')
-    
+
     def __init__(self, value):
         self.value = value
 
@@ -890,12 +892,14 @@ model.value = 20  # Prints: Value changed from 10 to 20
 ## 📚 Summary
 
 Descriptors and properties provide powerful attribute access control:
+
 - Validation, lazy loading, computed properties
 - Type safety and data sanitization
 - Foundation for ORMs and frameworks
 - Clean, Pythonic APIs
 
 **Key Takeaways**:
+
 1. Descriptors implement `__get__`, `__set__`, `__delete__`
 2. Data descriptors override instance dict
 3. Use `@property` for simple cases

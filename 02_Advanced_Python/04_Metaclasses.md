@@ -47,17 +47,17 @@ print(dog.bark())  # "Woof!"
 ```python
 class MyMeta(type):
     """Custom metaclass"""
-    
+
     def __new__(mcs, name, bases, namespace):
         """Called to create a new class"""
         print(f"Creating class: {name}")
-        
+
         # Modify class before creation
         namespace['created_by'] = 'MyMeta'
-        
+
         # Create the class
         return super().__new__(mcs, name, bases, namespace)
-    
+
     def __init__(cls, name, bases, namespace):
         """Called after class is created"""
         print(f"Initializing class: {name}")
@@ -95,15 +95,15 @@ class MetaLogger(type):
         print(f"   Metaclass: {mcs}")
         print(f"   Bases: {bases}")
         print(f"   Namespace keys: {list(namespace.keys())}")
-        
+
         cls = super().__new__(mcs, name, bases, namespace)
         print(f"2. Class object created: {cls}")
         return cls
-    
+
     def __init__(cls, name, bases, namespace):
         print(f"3. __init__ called for {name}")
         super().__init__(name, bases, namespace)
-    
+
     def __call__(cls, *args, **kwargs):
         print(f"4. __call__ called (creating instance of {cls.__name__})")
         instance = super().__call__(*args, **kwargs)
@@ -173,7 +173,7 @@ class Derived(Base1New, Base2New):
 class SingletonMeta(type):
     """Ensure only one instance of a class exists"""
     _instances = {}
-    
+
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
             cls._instances[cls] = super().__call__(*args, **kwargs)
@@ -193,18 +193,18 @@ print(db1 is db2)  # True
 ```python
 class AbstractMeta(type):
     """Enforce implementation of abstract methods"""
-    
+
     def __new__(mcs, name, bases, namespace):
         # Check for required methods
         required_methods = ['save', 'load']
-        
+
         if bases:  # Skip for base class itself
             for method in required_methods:
                 if method not in namespace:
                     raise TypeError(
                         f"{name} must implement {method}() method"
                     )
-        
+
         return super().__new__(mcs, name, bases, namespace)
 
 class Model(metaclass=AbstractMeta):
@@ -218,7 +218,7 @@ class Model(metaclass=AbstractMeta):
 class User(Model):
     def save(self):
         pass
-    
+
     def load(self):
         pass
 ```
@@ -228,28 +228,28 @@ class User(Model):
 ```python
 class AutoPropertyMeta(type):
     """Automatically create properties for _private attributes"""
-    
+
     def __new__(mcs, name, bases, namespace):
         for attr_name, attr_value in list(namespace.items()):
             if attr_name.startswith('_') and not attr_name.startswith('__'):
                 # Create property for _attr
                 property_name = attr_name[1:]  # Remove leading underscore
-                
+
                 def make_getter(attr):
                     def getter(self):
                         return getattr(self, attr)
                     return getter
-                
+
                 def make_setter(attr):
                     def setter(self, value):
                         setattr(self, attr, value)
                     return setter
-                
+
                 namespace[property_name] = property(
                     make_getter(attr_name),
                     make_setter(attr_name)
                 )
-        
+
         return super().__new__(mcs, name, bases, namespace)
 
 class Person(metaclass=AutoPropertyMeta):
@@ -268,16 +268,16 @@ person.age = 31     # Automatically created setter
 class PluginMeta(type):
     """Automatically register all subclasses"""
     registry = {}
-    
+
     def __new__(mcs, name, bases, namespace):
         cls = super().__new__(mcs, name, bases, namespace)
-        
+
         # Register all non-base classes
         if bases:  # Skip the base class itself
             mcs.registry[name] = cls
-        
+
         return cls
-    
+
     @classmethod
     def get_plugins(mcs):
         return mcs.registry
@@ -309,7 +309,7 @@ class Field:
 
 class ModelMeta(type):
     """Metaclass for ORM-like models"""
-    
+
     def __new__(mcs, name, bases, namespace):
         # Extract fields
         fields = {}
@@ -317,20 +317,20 @@ class ModelMeta(type):
             if isinstance(value, Field):
                 fields[key] = value
                 namespace.pop(key)  # Remove from class namespace
-        
+
         # Create class
         cls = super().__new__(mcs, name, bases, namespace)
-        
+
         # Store fields metadata
         cls._fields = fields
-        
+
         # Create __init__ to accept field values
         def init(self, **kwargs):
             for field_name in cls._fields:
                 setattr(self, field_name, kwargs.get(field_name))
-        
+
         cls.__init__ = init
-        
+
         return cls
 
 class Model(metaclass=ModelMeta):
@@ -349,7 +349,7 @@ print(User._fields)  # Field metadata
 
 ## ❌ Common Mistakes
 
-### 1. Confusing __new__ and __init__
+### 1. Confusing **new** and **init**
 
 ```python
 # WRONG - Using __init__ to modify class
@@ -379,7 +379,7 @@ class GoodMeta(type):
         return super().__new__(mcs, name, bases, namespace)
 ```
 
-### 3. Modifying namespace After super().__new__
+### 3. Modifying namespace After super().**new**
 
 ```python
 # WRONG - Modify after class creation
@@ -403,7 +403,7 @@ class CorrectOrder(type):
 ```python
 class ValidatedMeta(type):
     """Validate class definitions for security"""
-    
+
     def __new__(mcs, name, bases, namespace):
         # Prevent dangerous method names
         dangerous_names = ['exec', 'eval', '__del__']
@@ -412,7 +412,7 @@ class ValidatedMeta(type):
                 raise SecurityError(
                     f"Method {dangerous} not allowed in {name}"
                 )
-        
+
         # Validate method signatures
         import inspect
         for attr_name, attr_value in namespace.items():
@@ -423,7 +423,7 @@ class ValidatedMeta(type):
                     raise ValueError(
                         f"Method {attr_name} has too many parameters"
                     )
-        
+
         return super().__new__(mcs, name, bases, namespace)
 
 class SecureModel(metaclass=ValidatedMeta):
@@ -436,10 +436,10 @@ class SecureModel(metaclass=ValidatedMeta):
 ```python
 class PermissionMeta(type):
     """Add permission checks to all methods"""
-    
+
     def __new__(mcs, name, bases, namespace):
         import functools
-        
+
         for attr_name, attr_value in namespace.items():
             if callable(attr_value) and not attr_name.startswith('_'):
                 # Wrap method with permission check
@@ -450,9 +450,9 @@ class PermissionMeta(type):
                             f"No permission for {attr_name}"
                         )
                     return attr_value(self, *args, **kwargs)
-                
+
                 namespace[attr_name] = wrapper
-        
+
         return super().__new__(mcs, name, bases, namespace)
 ```
 
@@ -463,17 +463,17 @@ class PermissionMeta(type):
 ```python
 class CacheMeta(type):
     """Automatically cache method results"""
-    
+
     def __new__(mcs, name, bases, namespace):
         from functools import lru_cache
-        
+
         for attr_name, attr_value in namespace.items():
-            if (callable(attr_value) and 
+            if (callable(attr_value) and
                 not attr_name.startswith('_') and
                 hasattr(attr_value, '_cache_results')):
-                
+
                 namespace[attr_name] = lru_cache(maxsize=128)(attr_value)
-        
+
         return super().__new__(mcs, name, bases, namespace)
 
 def cache_results(func):
@@ -493,20 +493,20 @@ class Calculator(metaclass=CacheMeta):
 ```python
 class SlotsMeta(type):
     """Automatically add __slots__ for memory optimization"""
-    
+
     def __new__(mcs, name, bases, namespace):
         # Find all instance attributes from __init__
         if '__init__' in namespace:
             import inspect
             init_source = inspect.getsource(namespace['__init__'])
-            
+
             # Simple pattern matching for self.attribute
             import re
             slots = set(re.findall(r'self\.(\w+)', init_source))
-            
+
             if slots:
                 namespace['__slots__'] = tuple(slots)
-        
+
         return super().__new__(mcs, name, bases, namespace)
 
 class OptimizedClass(metaclass=SlotsMeta):
@@ -525,14 +525,14 @@ print(OptimizedClass.__slots__)
 ```python
 class LoggerMeta(type):
     """Log all method calls"""
-    
+
     def __new__(mcs, name, bases, namespace):
         for attr_name, attr_value in namespace.items():
             if callable(attr_value) and not attr_name.startswith('_'):
                 namespace[attr_name] = mcs.log_calls(attr_value, attr_name)
-        
+
         return super().__new__(mcs, name, bases, namespace)
-    
+
     @staticmethod
     def log_calls(func, method_name):
         def wrapper(*args, **kwargs):
@@ -545,7 +545,7 @@ class LoggerMeta(type):
 class Calculator(metaclass=LoggerMeta):
     def add(self, a, b):
         return a + b
-    
+
     def multiply(self, a, b):
         return a * b
 
@@ -560,19 +560,19 @@ calc.add(5, 3)
 ```python
 class ImmutableMeta(type):
     """Create immutable classes"""
-    
+
     def __call__(cls, *args, **kwargs):
         instance = super().__call__(*args, **kwargs)
         instance.__dict__['_frozen'] = True
         return instance
-    
+
     def __new__(mcs, name, bases, namespace):
         # Override __setattr__
         def setattr(self, name, value):
             if hasattr(self, '_frozen') and self._frozen:
                 raise AttributeError(f"{name} is immutable")
             object.__setattr__(self, name, value)
-        
+
         namespace['__setattr__'] = setattr
         return super().__new__(mcs, name, bases, namespace)
 
@@ -591,32 +591,32 @@ point = Point(1, 2)
 class VersionedMeta(type):
     """Support API versioning"""
     _versions = {}
-    
+
     def __new__(mcs, name, bases, namespace):
         version = namespace.get('__version__', '1.0')
-        
+
         cls = super().__new__(mcs, name, bases, namespace)
-        
+
         # Store in version registry
         if name not in mcs._versions:
             mcs._versions[name] = {}
         mcs._versions[name][version] = cls
-        
+
         return cls
-    
+
     @classmethod
     def get_version(mcs, name, version):
         return mcs._versions.get(name, {}).get(version)
 
 class UserAPIv1(metaclass=VersionedMeta):
     __version__ = '1.0'
-    
+
     def get_data(self):
         return {'id': 1, 'name': 'User'}
 
 class UserAPIv2(metaclass=VersionedMeta):
     __version__ = '2.0'
-    
+
     def get_data(self):
         return {'id': 1, 'username': 'user', 'email': 'user@example.com'}
 
@@ -632,20 +632,20 @@ api_v2 = VersionedMeta.get_version('UserAPIv2', '2.0')()
 ```python
 class ModelBase(type):
     """Simplified Django model metaclass"""
-    
+
     def __new__(mcs, name, bases, namespace):
         # Collect field definitions
         fields = {}
         for key, value in list(namespace.items()):
             if isinstance(value, Field):
                 fields[key] = value
-        
+
         # Create _meta object
         namespace['_meta'] = type('Meta', (), {
             'fields': fields,
             'db_table': name.lower() + 's',
         })
-        
+
         return super().__new__(mcs, name, bases, namespace)
 
 class Model(metaclass=ModelBase):
@@ -664,20 +664,20 @@ print(User._meta.fields)
 ```python
 class DeclarativeMeta(type):
     """Simplified SQLAlchemy declarative metaclass"""
-    
+
     def __new__(mcs, name, bases, namespace):
         # Create table name from class name
         if '__tablename__' not in namespace and bases:
             namespace['__tablename__'] = name.lower()
-        
+
         # Collect column definitions
         columns = {}
         for key, value in namespace.items():
             if isinstance(value, Column):
                 columns[key] = value
-        
+
         namespace['__columns__'] = columns
-        
+
         return super().__new__(mcs, name, bases, namespace)
 
 class Column:
@@ -702,17 +702,19 @@ print(User.__columns__)
 
 **Answer**: A metaclass is a class whose instances are classes. It defines how classes are created and behave. The default metaclass is `type`. Metaclasses customize class creation through `__new__` and `__init__` methods.
 
-### Q2: What's the difference between __new__ and __init__ in metaclasses?
+### Q2: What's the difference between **new** and **init** in metaclasses?
 
 **Answer**:
+
 - `__new__`: Creates and returns the class object (called first)
-- `__init__`: Initializes the created class (called after __new__)
+- `__init__`: Initializes the created class (called after **new**)
 - `__new__` is more powerful - can modify class before creation
 - `__init__` modifies class after it's created
 
 ### Q3: When should you use metaclasses?
 
 **Answer**: Use metaclasses when:
+
 - Building frameworks (Django, SQLAlchemy)
 - Automatically registering subclasses
 - Enforcing coding standards/patterns
@@ -724,6 +726,7 @@ print(User.__columns__)
 ### Q4: How is type() both a function and a class?
 
 **Answer**: `type()` is a metaclass that works two ways:
+
 ```python
 # As a function: returns type of object
 type(42)  # <class 'int'>
@@ -747,6 +750,7 @@ class MyClass(metaclass=CombinedMeta):
 ### Q6: What's the difference between class decorators and metaclasses?
 
 **Answer**:
+
 - **Class decorators**: Wrap the class after creation
 - **Metaclasses**: Control class creation process itself
 
@@ -766,6 +770,7 @@ Decorators are simpler and usually sufficient; use metaclasses only for complex 
 ### Q7: How does Python determine which metaclass to use?
 
 **Answer**: Python uses this order:
+
 1. Explicit `metaclass=` parameter
 2. Metaclass of base classes
 3. Default `type` metaclass
@@ -796,16 +801,16 @@ Prefer `__init_subclass__` over metaclasses when possible.
 class FactoryMeta(type):
     """Metaclass for factory pattern"""
     _products = {}
-    
+
     def __new__(mcs, name, bases, namespace):
         cls = super().__new__(mcs, name, bases, namespace)
-        
+
         # Register product types
         if 'product_type' in namespace:
             mcs._products[namespace['product_type']] = cls
-        
+
         return cls
-    
+
     @classmethod
     def create(mcs, product_type):
         if product_type in mcs._products:
@@ -831,12 +836,14 @@ product_b = FactoryMeta.create('B')
 ## 📚 Summary
 
 Metaclasses are advanced Python feature for:
+
 - Customizing class creation
 - Framework development
 - Automatic registration and validation
 - Enforcing patterns and standards
 
 **Key Takeaways**:
+
 1. Metaclasses are classes that create classes
 2. Default metaclass is `type`
 3. Use `__new__` to modify class before creation

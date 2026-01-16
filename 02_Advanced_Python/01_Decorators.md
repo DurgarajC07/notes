@@ -167,12 +167,12 @@ from functools import wraps
 
 class CountCalls:
     """Decorator that counts function calls"""
-    
+
     def __init__(self, func):
         self.func = func
         self.count = 0
         wraps(func)(self)  # Preserve metadata
-    
+
     def __call__(self, *args, **kwargs):
         self.count += 1
         print(f"Call {self.count} of {self.func.__name__}()")
@@ -225,7 +225,7 @@ def get_value():
 print(get_value())  # None (BUG!)
 ```
 
-### 2. Not Using *args and **kwargs
+### 2. Not Using \*args and \*\*kwargs
 
 ```python
 # WRONG - Only works with no-argument functions
@@ -293,14 +293,14 @@ def require_auth(func):
         token = request.headers.get('Authorization')
         if not token:
             return jsonify({"error": "No token provided"}), 401
-        
+
         try:
             user = verify_token(token)
             g.user = user  # Store in Flask global context
             return func(*args, **kwargs)
         except InvalidTokenError:
             return jsonify({"error": "Invalid token"}), 401
-    
+
     return wrapper
 
 @app.route('/api/protected')
@@ -323,26 +323,26 @@ class RateLimiter:
         self.time_window = time_window
         self.calls = defaultdict(list)
         self.lock = Lock()
-    
+
     def __call__(self, func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Use IP address as key (in production, use request.remote_addr)
             key = "user_identifier"
             now = time.time()
-            
+
             with self.lock:
                 # Remove old entries
                 self.calls[key] = [
                     call_time for call_time in self.calls[key]
                     if now - call_time < self.time_window
                 ]
-                
+
                 if len(self.calls[key]) >= self.max_calls:
                     raise Exception("Rate limit exceeded")
-                
+
                 self.calls[key].append(now)
-            
+
             return func(*args, **kwargs)
         return wrapper
 
@@ -391,24 +391,24 @@ def timed_cache(seconds):
     def decorator(func):
         cache = {}
         cache_time = {}
-        
+
         @wraps(func)
         def wrapper(*args):
             now = time.time()
-            
+
             # Check if result exists and is not expired
             if args in cache:
                 if now - cache_time[args] < seconds:
                     print(f"Cache hit for {args}")
                     return cache[args]
-            
+
             # Compute and cache result
             print(f"Computing for {args}")
             result = func(*args)
             cache[args] = result
             cache_time[args] = now
             return result
-        
+
         return wrapper
     return decorator
 
@@ -443,9 +443,9 @@ def log_function_call(func):
         args_repr = [repr(a) for a in args]
         kwargs_repr = [f"{k}={v!r}" for k, v in kwargs.items()]
         signature = ", ".join(args_repr + kwargs_repr)
-        
+
         logger.info(f"Calling {func.__name__}({signature})")
-        
+
         try:
             result = func(*args, **kwargs)
             logger.info(f"{func.__name__} returned {result!r}")
@@ -453,7 +453,7 @@ def log_function_call(func):
         except Exception as e:
             logger.exception(f"{func.__name__} raised {e.__class__.__name__}")
             raise
-    
+
     return wrapper
 
 @log_function_call
@@ -478,21 +478,21 @@ def retry(max_attempts=3, delay=1, backoff=2, exceptions=(Exception,)):
         def wrapper(*args, **kwargs):
             attempt = 1
             current_delay = delay
-            
+
             while attempt <= max_attempts:
                 try:
                     return func(*args, **kwargs)
                 except exceptions as e:
                     if attempt == max_attempts:
                         raise
-                    
+
                     print(f"Attempt {attempt} failed: {e}")
                     print(f"Retrying in {current_delay}s...")
                     time.sleep(current_delay)
-                    
+
                     attempt += 1
                     current_delay *= backoff
-            
+
         return wrapper
     return decorator
 
@@ -522,7 +522,7 @@ def validate_types(**expected_types):
             sig = inspect.signature(func)
             bound = sig.bind(*args, **kwargs)
             bound.apply_defaults()
-            
+
             # Validate each argument
             for param_name, expected_type in expected_types.items():
                 if param_name in bound.arguments:
@@ -532,7 +532,7 @@ def validate_types(**expected_types):
                             f"{param_name} must be {expected_type.__name__}, "
                             f"got {type(value).__name__}"
                         )
-            
+
             return func(*args, **kwargs)
         return wrapper
     return decorator
@@ -556,13 +556,13 @@ from functools import wraps
 def singleton(cls):
     """Ensure only one instance of a class exists"""
     instances = {}
-    
+
     @wraps(cls)
     def get_instance(*args, **kwargs):
         if cls not in instances:
             instances[cls] = cls(*args, **kwargs)
         return instances[cls]
-    
+
     return get_instance
 
 @singleton
@@ -651,19 +651,19 @@ def atomic(func):
 @atomic
 def transfer_money(connection, from_account, to_account, amount):
     cursor = connection.cursor()
-    
+
     # Deduct from sender
     cursor.execute(
         "UPDATE accounts SET balance = balance - %s WHERE id = %s",
         (amount, from_account)
     )
-    
+
     # Add to receiver
     cursor.execute(
         "UPDATE accounts SET balance = balance + %s WHERE id = %s",
         (amount, to_account)
     )
-    
+
     return True
 ```
 
@@ -688,6 +688,7 @@ func = my_decorator(func)
 ### Q2: What's the difference between @decorator and @decorator()?
 
 **Answer**:
+
 - `@decorator` - Direct decorator application (decorator is a function)
 - `@decorator()` - Decorator factory (decorator is a function that returns a decorator)
 
@@ -750,6 +751,7 @@ func = decorator1(decorator2(func))
 ### Q5: What's the difference between function decorators and class decorators?
 
 **Answer**:
+
 - **Function decorators**: Wrap functions to modify their behavior
 - **Class decorators**: Wrap entire classes to modify class behavior or instances
 
@@ -789,7 +791,7 @@ def optional_decorator(func=None, *, prefix="LOG"):
             print(f"{prefix}: Calling {f.__name__}")
             return f(*args, **kwargs)
         return wrapper
-    
+
     if func is None:
         # Called with arguments: @optional_decorator(prefix="DEBUG")
         return decorator
@@ -809,6 +811,7 @@ def func2():
 ### Q7: What are the performance implications of decorators?
 
 **Answer**:
+
 - **Function call overhead**: Each decorator adds one extra function call
 - **Memory overhead**: Closures capture variables
 - **Caching solutions**: Use `functools.lru_cache` for expensive computations
@@ -852,7 +855,7 @@ class Coffee(ABC):
     @abstractmethod
     def cost(self):
         pass
-    
+
     @abstractmethod
     def description(self):
         pass
@@ -861,7 +864,7 @@ class Coffee(ABC):
 class SimpleCoffee(Coffee):
     def cost(self):
         return 5
-    
+
     def description(self):
         return "Simple coffee"
 
@@ -869,10 +872,10 @@ class SimpleCoffee(Coffee):
 class CoffeeDecorator(Coffee):
     def __init__(self, coffee):
         self._coffee = coffee
-    
+
     def cost(self):
         return self._coffee.cost()
-    
+
     def description(self):
         return self._coffee.description()
 
@@ -880,14 +883,14 @@ class CoffeeDecorator(Coffee):
 class Milk(CoffeeDecorator):
     def cost(self):
         return self._coffee.cost() + 2
-    
+
     def description(self):
         return self._coffee.description() + ", milk"
 
 class Sugar(CoffeeDecorator):
     def cost(self):
         return self._coffee.cost() + 1
-    
+
     def description(self):
         return self._coffee.description() + ", sugar"
 
@@ -907,12 +910,14 @@ print(f"{coffee_with_milk_and_sugar.description()}: ${coffee_with_milk_and_sugar
 ## 📚 Summary
 
 Decorators are a fundamental Python feature for:
+
 - Adding functionality without modifying code
 - Implementing cross-cutting concerns (auth, logging, caching)
 - Following DRY and SOLID principles
 - Building elegant, maintainable APIs
 
 **Key Takeaways**:
+
 1. Always use `@wraps` to preserve metadata
 2. Use `*args, **kwargs` for flexibility
 3. Understand the difference between `@dec` and `@dec()`
