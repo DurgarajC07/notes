@@ -25,6 +25,7 @@ Creational patterns deal with object creation mechanisms, trying to create objec
 ## 1️⃣ Singleton Pattern
 
 ### Concept
+
 Ensures a class has only one instance and provides global access point.
 
 ### Implementation
@@ -33,18 +34,18 @@ Ensures a class has only one instance and provides global access point.
 class Singleton:
     _instance = None
     _initialized = False
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
+
     def __init__(self):
         if not self._initialized:
             # Initialize only once
             self._initialized = True
             self.setup()
-    
+
     def setup(self):
         print("Singleton initialized")
 
@@ -62,7 +63,7 @@ import threading
 class ThreadSafeSingleton:
     _instance = None
     _lock = threading.Lock()
-    
+
     def __new__(cls):
         if cls._instance is None:
             with cls._lock:
@@ -75,7 +76,7 @@ class ThreadSafeSingleton:
 class SingletonMeta(type):
     _instances = {}
     _lock = threading.Lock()
-    
+
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
             with cls._lock:
@@ -86,7 +87,7 @@ class SingletonMeta(type):
 class DatabaseConnection(metaclass=SingletonMeta):
     def __init__(self):
         self.connection = self._create_connection()
-    
+
     def _create_connection(self):
         print("Creating database connection")
         return "DB_CONNECTION_OBJECT"
@@ -105,15 +106,15 @@ from django.conf import settings
 
 class SettingsManager(metaclass=SingletonMeta):
     """Singleton for managing application settings"""
-    
+
     def __init__(self):
         self._cache = {}
-    
+
     def get(self, key, default=None):
         if key not in self._cache:
             self._cache[key] = getattr(settings, key, default)
         return self._cache[key]
-    
+
     def reload(self):
         """Reload settings"""
         self._cache.clear()
@@ -132,6 +133,7 @@ def config_view(request):
 ## 2️⃣ Factory Method Pattern
 
 ### Concept
+
 Define an interface for creating objects, but let subclasses decide which class to instantiate.
 
 ### Simple Factory
@@ -228,7 +230,7 @@ class ReportGeneratorFactory:
         'excel': ExcelReportGenerator,
         'csv': CSVReportGenerator
     }
-    
+
     @classmethod
     def create(cls, report_type: str) -> ReportGenerator:
         generator_class = cls._generators.get(report_type.lower())
@@ -243,11 +245,11 @@ from django.views import View
 class GenerateReportView(View):
     def get(self, request, report_id):
         report = Report.objects.get(id=report_id)
-        
+
         # Factory creates appropriate generator
         generator = ReportGeneratorFactory.create(report.report_type)
         file_buffer = generator.generate(report.data)
-        
+
         response = HttpResponse(
             file_buffer,
             content_type=f'application/{report.report_type}'
@@ -268,7 +270,7 @@ class PaymentGateway(ABC):
     @abstractmethod
     def charge(self, amount: Decimal, token: str) -> Dict:
         pass
-    
+
     @abstractmethod
     def refund(self, transaction_id: str) -> Dict:
         pass
@@ -278,7 +280,7 @@ class StripeGateway(PaymentGateway):
         import stripe
         self.stripe = stripe
         self.stripe.api_key = api_key
-    
+
     def charge(self, amount: Decimal, token: str) -> Dict:
         charge = self.stripe.Charge.create(
             amount=int(amount * 100),
@@ -289,7 +291,7 @@ class StripeGateway(PaymentGateway):
             'transaction_id': charge.id,
             'status': 'success' if charge.paid else 'failed'
         }
-    
+
     def refund(self, transaction_id: str) -> Dict:
         refund = self.stripe.Refund.create(charge=transaction_id)
         return {'refund_id': refund.id, 'status': refund.status}
@@ -298,11 +300,11 @@ class PayPalGateway(PaymentGateway):
     def __init__(self, client_id: str, secret: str):
         self.client_id = client_id
         self.secret = secret
-    
+
     def charge(self, amount: Decimal, token: str) -> Dict:
         # PayPal API implementation
         return {'transaction_id': 'PP-123', 'status': 'success'}
-    
+
     def refund(self, transaction_id: str) -> Dict:
         return {'refund_id': 'REF-123', 'status': 'completed'}
 
@@ -310,7 +312,7 @@ class PaymentGatewayFactory:
     @staticmethod
     def create(provider: str) -> PaymentGateway:
         from django.conf import settings
-        
+
         if provider == 'stripe':
             return StripeGateway(settings.STRIPE_API_KEY)
         elif provider == 'paypal':
@@ -325,7 +327,7 @@ class PaymentGatewayFactory:
 class PaymentService:
     def __init__(self, provider: str):
         self.gateway = PaymentGatewayFactory.create(provider)
-    
+
     def process_payment(self, amount: Decimal, token: str) -> Dict:
         return self.gateway.charge(amount, token)
 ```
@@ -333,6 +335,7 @@ class PaymentService:
 ## 3️⃣ Abstract Factory Pattern
 
 ### Concept
+
 Provides interface for creating families of related objects without specifying their concrete classes.
 
 ### Database Factory Example
@@ -344,7 +347,7 @@ from abc import ABC, abstractmethod
 class Connection(ABC):
     @abstractmethod
     def connect(self): pass
-    
+
     @abstractmethod
     def disconnect(self): pass
 
@@ -357,14 +360,14 @@ class PostgreSQLConnection(Connection):
     def connect(self):
         print("Connected to PostgreSQL")
         return self
-    
+
     def disconnect(self):
         print("Disconnected from PostgreSQL")
 
 class PostgreSQLQuery(Query):
     def __init__(self, connection):
         self.connection = connection
-    
+
     def execute(self, sql: str):
         print(f"PostgreSQL executing: {sql}")
         return []
@@ -374,14 +377,14 @@ class MySQLConnection(Connection):
     def connect(self):
         print("Connected to MySQL")
         return self
-    
+
     def disconnect(self):
         print("Disconnected from MySQL")
 
 class MySQLQuery(Query):
     def __init__(self, connection):
         self.connection = connection
-    
+
     def execute(self, sql: str):
         print(f"MySQL executing: {sql}")
         return []
@@ -391,7 +394,7 @@ class DatabaseFactory(ABC):
     @abstractmethod
     def create_connection(self) -> Connection:
         pass
-    
+
     @abstractmethod
     def create_query(self, connection: Connection) -> Query:
         pass
@@ -400,14 +403,14 @@ class DatabaseFactory(ABC):
 class PostgreSQLFactory(DatabaseFactory):
     def create_connection(self) -> Connection:
         return PostgreSQLConnection()
-    
+
     def create_query(self, connection: Connection) -> Query:
         return PostgreSQLQuery(connection)
 
 class MySQLFactory(DatabaseFactory):
     def create_connection(self) -> Connection:
         return MySQLConnection()
-    
+
     def create_query(self, connection: Connection) -> Query:
         return MySQLQuery(connection)
 
@@ -415,10 +418,10 @@ class MySQLFactory(DatabaseFactory):
 def database_operations(factory: DatabaseFactory):
     connection = factory.create_connection()
     connection.connect()
-    
+
     query = factory.create_query(connection)
     query.execute("SELECT * FROM users")
-    
+
     connection.disconnect()
 
 # Usage
@@ -451,7 +454,7 @@ class UserProvider(ABC):
 class JWTTokenValidator(TokenValidator):
     def __init__(self, secret_key: str):
         self.secret_key = secret_key
-    
+
     def validate(self, token: str) -> dict:
         import jwt
         try:
@@ -481,7 +484,7 @@ class AuthFactory(ABC):
     @abstractmethod
     def create_token_validator(self) -> TokenValidator:
         pass
-    
+
     @abstractmethod
     def create_user_provider(self) -> UserProvider:
         pass
@@ -489,17 +492,17 @@ class AuthFactory(ABC):
 class JWTAuthFactory(AuthFactory):
     def __init__(self, secret_key: str):
         self.secret_key = secret_key
-    
+
     def create_token_validator(self) -> TokenValidator:
         return JWTTokenValidator(self.secret_key)
-    
+
     def create_user_provider(self) -> UserProvider:
         return DatabaseUserProvider()
 
 class OAuth2AuthFactory(AuthFactory):
     def create_token_validator(self) -> TokenValidator:
         return OAuth2TokenValidator()
-    
+
     def create_user_provider(self) -> UserProvider:
         return LDAPUserProvider()
 
@@ -521,16 +524,17 @@ async def protected_route(
 ):
     validator = auth_factory.create_token_validator()
     payload = validator.validate(credentials.credentials)
-    
+
     user_provider = auth_factory.create_user_provider()
     user = user_provider.get_user(payload['user_id'])
-    
+
     return {"user": user}
 ```
 
 ## 4️⃣ Builder Pattern
 
 ### Concept
+
 Construct complex objects step by step. Separates object construction from its representation.
 
 ### Query Builder
@@ -543,43 +547,43 @@ class QueryBuilder:
         self._where = []
         self._order = []
         self._limit = None
-    
+
     def select(self, *fields):
         self._select.extend(fields)
         return self
-    
+
     def from_table(self, table):
         self._from = table
         return self
-    
+
     def where(self, condition):
         self._where.append(condition)
         return self
-    
+
     def order_by(self, field, direction='ASC'):
         self._order.append(f"{field} {direction}")
         return self
-    
+
     def limit(self, count):
         self._limit = count
         return self
-    
+
     def build(self) -> str:
         if not self._from:
             raise ValueError("FROM clause is required")
-        
+
         query = f"SELECT {', '.join(self._select) or '*'}"
         query += f" FROM {self._from}"
-        
+
         if self._where:
             query += f" WHERE {' AND '.join(self._where)}"
-        
+
         if self._order:
             query += f" ORDER BY {', '.join(self._order)}"
-        
+
         if self._limit:
             query += f" LIMIT {self._limit}"
-        
+
         return query
 
 # Usage
@@ -611,51 +615,51 @@ class RequestBuilder:
         self._data = None
         self._json = None
         self._timeout = 30
-    
+
     def get(self):
         self.method = 'GET'
         return self
-    
+
     def post(self):
         self.method = 'POST'
         return self
-    
+
     def put(self):
         self.method = 'PUT'
         return self
-    
+
     def delete(self):
         self.method = 'DELETE'
         return self
-    
+
     def header(self, key: str, value: str):
         self._headers[key] = value
         return self
-    
+
     def headers(self, headers: Dict):
         self._headers.update(headers)
         return self
-    
+
     def param(self, key: str, value):
         self._params[key] = value
         return self
-    
+
     def params(self, params: Dict):
         self._params.update(params)
         return self
-    
+
     def json_body(self, data: Dict):
         self._json = data
         return self
-    
+
     def form_data(self, data: Dict):
         self._data = data
         return self
-    
+
     def timeout(self, seconds: int):
         self._timeout = seconds
         return self
-    
+
     def execute(self):
         return requests.request(
             method=self.method,
@@ -701,45 +705,45 @@ class UserBuilder:
         self._is_superuser = False
         self._groups = []
         self._permissions = []
-    
+
     def with_username(self, username: str):
         self._username = username
         return self
-    
+
     def with_email(self, email: str):
         self._email = email
         return self
-    
+
     def with_password(self, password: str):
         self._password = password
         return self
-    
+
     def with_name(self, first_name: str, last_name: str):
         self._first_name = first_name
         self._last_name = last_name
         return self
-    
+
     def as_staff(self):
         self._is_staff = True
         return self
-    
+
     def as_superuser(self):
         self._is_superuser = True
         self._is_staff = True
         return self
-    
+
     def with_groups(self, *groups):
         self._groups.extend(groups)
         return self
-    
+
     def with_permissions(self, *permissions):
         self._permissions.extend(permissions)
         return self
-    
+
     def build(self) -> User:
         if not self._username:
             raise ValueError("Username is required")
-        
+
         user = User.objects.create_user(
             username=self._username,
             email=self._email,
@@ -749,13 +753,13 @@ class UserBuilder:
             is_staff=self._is_staff,
             is_superuser=self._is_superuser
         )
-        
+
         if self._groups:
             user.groups.set(self._groups)
-        
+
         if self._permissions:
             user.user_permissions.set(self._permissions)
-        
+
         return user
 
 # Usage
@@ -776,6 +780,7 @@ user = (UserBuilder()
 ## 5️⃣ Prototype Pattern
 
 ### Concept
+
 Create new objects by cloning existing objects (prototypes) instead of creating from scratch.
 
 ### Basic Prototype
@@ -787,7 +792,7 @@ class Prototype:
     def clone(self):
         """Shallow copy"""
         return copy.copy(self)
-    
+
     def deep_clone(self):
         """Deep copy"""
         return copy.deepcopy(self)
@@ -797,7 +802,7 @@ class Document(Prototype):
         self.title = title
         self.content = content
         self.metadata = metadata or {}
-    
+
     def __str__(self):
         return f"Document(title='{self.title}', metadata={self.metadata})"
 
@@ -826,11 +831,11 @@ print(clone2)
 class Configuration:
     def __init__(self):
         self.settings = {}
-    
+
     def set(self, key, value):
         self.settings[key] = value
         return self
-    
+
     def clone(self):
         new_config = Configuration()
         new_config.settings = copy.deepcopy(self.settings)
@@ -861,7 +866,7 @@ class Product(models.Model):
     name = models.CharField(max_length=200)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField()
-    
+
     def clone(self):
         """Clone product with new ID"""
         self.pk = None  # Reset primary key
@@ -885,7 +890,7 @@ def duplicate_product(request, product_id):
 # WRONG - Multiple instances possible
 class BadSingleton:
     instance = None
-    
+
     def __init__(self):
         BadSingleton.instance = self  # Race condition!
 
@@ -917,23 +922,23 @@ def good_factory(type) -> Animal:
 class SecureConfig(metaclass=SingletonMeta):
     def __init__(self):
         self._secrets = {}
-    
+
     def set_secret(self, key: str, value: str):
         # Encrypt before storing
         encrypted = self._encrypt(value)
         self._secrets[key] = encrypted
-    
+
     def get_secret(self, key: str) -> str:
         encrypted = self._secrets.get(key)
         if encrypted:
             return self._decrypt(encrypted)
         return None
-    
+
     def _encrypt(self, value: str) -> str:
         from cryptography.fernet import Fernet
         # Use proper encryption
         return value  # Simplified
-    
+
     def _decrypt(self, value: str) -> str:
         return value  # Simplified
 ```
@@ -941,6 +946,7 @@ class SecureConfig(metaclass=SingletonMeta):
 ## 📚 Summary
 
 Creational patterns provide flexible object creation:
+
 - **Singleton**: One instance globally
 - **Factory Method**: Delegate object creation
 - **Abstract Factory**: Family of related objects

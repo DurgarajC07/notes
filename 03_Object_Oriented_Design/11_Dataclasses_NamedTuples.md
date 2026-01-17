@@ -28,10 +28,10 @@ class User:
         self.username = username
         self.email = email
         self.active = active
-    
+
     def __repr__(self):
         return f"User(id={self.id}, username={self.username}, email={self.email}, active={self.active})"
-    
+
     def __eq__(self, other):
         if not isinstance(other, User):
             return NotImplemented
@@ -119,22 +119,22 @@ from dataclasses import dataclass, field
 class Config:
     # Default value
     debug: bool = False
-    
+
     # Default factory (for mutable defaults)
     allowed_hosts: List[str] = field(default_factory=list)
-    
+
     # Exclude from __init__
     computed: int = field(init=False)
-    
+
     # Exclude from __repr__
     password: str = field(repr=False, default="")
-    
+
     # Exclude from comparison
     last_modified: datetime = field(compare=False, default_factory=datetime.now)
-    
+
     # Metadata (doesn't affect behavior, used for documentation)
     api_key: str = field(metadata={"sensitive": True}, default="")
-    
+
     def __post_init__(self):
         # Called after __init__
         self.computed = len(self.allowed_hosts)
@@ -190,7 +190,7 @@ class Rectangle:
     width: float
     height: float
     area: float = field(init=False)
-    
+
     def __post_init__(self):
         self.area = self.width * self.height
 
@@ -242,13 +242,13 @@ from typing import NamedTuple
 class Vector(NamedTuple):
     x: float
     y: float
-    
+
     def magnitude(self) -> float:
         return (self.x ** 2 + self.y ** 2) ** 0.5
-    
+
     def dot(self, other: 'Vector') -> float:
         return self.x * other.x + self.y * other.y
-    
+
     def __add__(self, other: 'Vector') -> 'Vector':
         return Vector(self.x + other.x, self.y + other.y)
 
@@ -275,7 +275,7 @@ class UserResponse:
     username: str
     email: str
     is_active: bool
-    
+
     @classmethod
     def from_model(cls, user):
         return cls(
@@ -297,14 +297,14 @@ from django.contrib.auth.models import User
 
 def list_users(request):
     users = User.objects.all()[:10]
-    
+
     response = PaginatedResponse(
         count=users.count(),
         next=None,
         previous=None,
         results=[UserResponse.from_model(u) for u in users]
     )
-    
+
     return JsonResponse(asdict(response))
 ```
 
@@ -321,24 +321,24 @@ class UserRegistrationData:
     password: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    
+
     def validate(self) -> List[str]:
         errors = []
-        
+
         if len(self.username) < 3:
             errors.append("Username must be at least 3 characters")
-        
+
         if "@" not in self.email:
             errors.append("Invalid email")
-        
+
         if len(self.password) < 8:
             errors.append("Password must be at least 8 characters")
-        
+
         return errors
-    
+
     def create_user(self):
         from django.contrib.auth.models import User
-        
+
         return User.objects.create_user(
             username=self.username,
             email=self.email,
@@ -354,11 +354,11 @@ def register(request):
         email=request.POST['email'],
         password=request.POST['password']
     )
-    
+
     errors = data.validate()
     if errors:
         return JsonResponse({'errors': errors}, status=400)
-    
+
     user = data.create_user()
     return JsonResponse({'user_id': user.id})
 ```
@@ -376,7 +376,7 @@ class OrderStatistics:
     total_revenue: Decimal
     average_order_value: Decimal
     top_product: str
-    
+
     @classmethod
     def from_queryset(cls, orders_qs):
         stats = orders_qs.aggregate(
@@ -384,12 +384,12 @@ class OrderStatistics:
             total_revenue=Sum('total_amount'),
             average_order_value=Avg('total_amount')
         )
-        
+
         top_product = orders_qs.values('product__name') \
             .annotate(count=Count('id')) \
             .order_by('-count') \
             .first()
-        
+
         return cls(
             total_orders=stats['total_orders'],
             total_revenue=stats['total_revenue'] or Decimal('0'),
@@ -400,7 +400,7 @@ class OrderStatistics:
 # views.py
 def order_stats(request):
     from orders.models import Order
-    
+
     stats = OrderStatistics.from_queryset(Order.objects.all())
     return JsonResponse(asdict(stats))
 ```
@@ -450,7 +450,7 @@ class DatabaseConfig:
     password: str
     pool_size: int = 10
     ssl_mode: Optional[str] = None
-    
+
     def get_connection_url(self) -> str:
         return f"postgresql://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}"
 
@@ -460,11 +460,11 @@ class AppConfig:
     secret_key: str
     database: DatabaseConfig
     redis_url: str
-    
+
     @classmethod
     def from_env(cls):
         import os
-        
+
         return cls(
             debug=os.getenv('DEBUG', 'False') == 'True',
             secret_key=os.getenv('SECRET_KEY', 'dev-secret'),
@@ -531,7 +531,7 @@ import re
 @dataclass
 class Email:
     address: str
-    
+
     def __post_init__(self):
         if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', self.address):
             raise ValueError(f"Invalid email: {self.address}")
@@ -541,11 +541,11 @@ class User:
     username: str
     email: Email
     age: int
-    
+
     def __post_init__(self):
         if self.age < 0:
             raise ValueError("Age cannot be negative")
-        
+
         if len(self.username) < 3:
             raise ValueError("Username too short")
 
@@ -654,6 +654,7 @@ point_dict = {Point(1, 2): "value"}  # Works!
 ### Q1: When to use dataclass vs NamedTuple?
 
 **Answer**:
+
 - **Dataclass**: Mutable, need methods, complex validation, Django/FastAPI models
 - **NamedTuple**: Immutable, simple data, need hashability, return multiple values from functions
 
@@ -666,7 +667,7 @@ point_dict = {Point(1, 2): "value"}  # Works!
 class Rectangle:
     width: float
     height: float
-    
+
     def area(self) -> float:
         return self.width * self.height
 ```
@@ -685,6 +686,7 @@ user_dict = asdict(user)  # {'id': 1, 'username': 'john'}
 ## 📚 Summary
 
 **Dataclasses**:
+
 - ✅ Less boilerplate
 - ✅ Type hints
 - ✅ Mutable by default
@@ -692,6 +694,7 @@ user_dict = asdict(user)  # {'id': 1, 'username': 'john'}
 - ✅ Use for DTOs, API responses, configuration
 
 **NamedTuples**:
+
 - ✅ Immutable
 - ✅ Hashable (can be dict keys)
 - ✅ Lightweight
@@ -699,6 +702,7 @@ user_dict = asdict(user)  # {'id': 1, 'username': 'john'}
 - ✅ Use for coordinates, return values, immutable data
 
 **When to Use**:
+
 - API models → Dataclass
 - Configuration → Dataclass
 - Coordinates/Points → NamedTuple

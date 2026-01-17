@@ -8,6 +8,7 @@ Two fundamental ways to achieve code reuse and establish relationships between c
 - **Composition (Has-A)**: Class contains instances of other classes
 
 ### Key Principle
+
 **"Favor composition over inheritance"** - Gang of Four Design Patterns
 
 ### Why Composition Over Inheritance?
@@ -21,12 +22,14 @@ Two fundamental ways to achieve code reuse and establish relationships between c
 ## 🧠 When to Use Each
 
 ### Use Inheritance When:
+
 - True "is-a" relationship exists
 - Shared behavior across hierarchy
 - Polymorphism needed
 - Template Method pattern
 
 ### Use Composition When:
+
 - "Has-a" or "uses-a" relationship
 - Need to change behavior at runtime
 - Want to avoid deep hierarchies
@@ -39,10 +42,10 @@ Two fundamental ways to achieve code reuse and establish relationships between c
 class Animal:
     def __init__(self, name: str):
         self.name = name
-    
+
     def eat(self):
         return f"{self.name} is eating"
-    
+
     def sleep(self):
         return f"{self.name} is sleeping"
 
@@ -122,13 +125,13 @@ class Dog:
         self.walker = Walker()
         self.swimmer = Swimmer()
         self.barker = Barker()
-    
+
     def move_on_land(self):
         return self.walker.walk()
-    
+
     def move_in_water(self):
         return self.swimmer.swim()
-    
+
     def make_sound(self):
         return self.barker.bark()
 
@@ -137,10 +140,10 @@ class Bird:
         self.name = name
         self.walker = Walker()
         self.flyer = Flyer()
-    
+
     def move_on_land(self):
         return self.walker.walk()
-    
+
     def move_in_air(self):
         return self.flyer.fly()
 
@@ -150,13 +153,13 @@ class Duck:
         self.walker = Walker()
         self.swimmer = Swimmer()
         self.flyer = Flyer()
-    
+
     def move_on_land(self):
         return self.walker.walk()
-    
+
     def move_in_water(self):
         return self.swimmer.swim()
-    
+
     def move_in_air(self):
         return self.flyer.fly()
 
@@ -181,19 +184,19 @@ print(duck.move_in_air())   # "Flying in air"
 class BaseUser(models.Model):
     username = models.CharField(max_length=100)
     email = models.EmailField()
-    
+
     class Meta:
         abstract = True
 
 class PaidUser(BaseUser):
     subscription_date = models.DateField()
-    
+
     class Meta:
         abstract = True
 
 class PremiumUser(PaidUser):
     premium_features = models.JSONField()
-    
+
     class Meta:
         abstract = True
 
@@ -235,7 +238,7 @@ class UserService:
     @staticmethod
     def get_user_capabilities(user: User):
         capabilities = ['basic_access']
-        
+
         # Check subscription
         try:
             subscription = user.subscription
@@ -243,14 +246,14 @@ class UserService:
                 capabilities.append('premium_features')
         except Subscription.DoesNotExist:
             pass
-        
+
         # Check enterprise features
         try:
             enterprise = user.enterprisesettings
             capabilities.append('enterprise_features')
         except EnterpriseSettings.DoesNotExist:
             pass
-        
+
         return capabilities
 ```
 
@@ -273,13 +276,13 @@ class AuthRequiredMixin:
 
 class RateLimitMixin:
     rate_limit = 100  # requests per minute
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Check rate limit
         if self.is_rate_limited(request):
             return JsonResponse({'error': 'Rate limit exceeded'}, status=429)
         return super().dispatch(request, *args, **kwargs)
-    
+
     def is_rate_limited(self, request):
         # Check rate limit logic
         return False
@@ -307,7 +310,7 @@ from abc import ABC, abstractmethod
 class CacheInterface(ABC):
     @abstractmethod
     def get(self, key: str): pass
-    
+
     @abstractmethod
     def set(self, key: str, value): pass
 
@@ -320,7 +323,7 @@ class RedisCache(CacheInterface):
     def get(self, key: str):
         # Redis implementation
         return None
-    
+
     def set(self, key: str, value):
         pass
 
@@ -334,19 +337,19 @@ class UserService:
     def __init__(self, cache: CacheInterface, db: DatabaseInterface):
         self.cache = cache
         self.db = db
-    
+
     def get_user(self, user_id: int):
         # Try cache first
         cached = self.cache.get(f"user:{user_id}")
         if cached:
             return cached
-        
+
         # Query database
         result = self.db.query(f"SELECT * FROM users WHERE id = {user_id}")
-        
+
         # Cache result
         self.cache.set(f"user:{user_id}", result)
-        
+
         return result
 
 # Dependency injection
@@ -410,21 +413,21 @@ class PaymentMethod(ABC):
 class CreditCard(PaymentMethod):
     def __init__(self, card_number: str):
         self.card_number = card_number
-    
+
     def charge(self, amount: Decimal) -> dict:
         return {'method': 'credit_card', 'amount': amount}
 
 class PayPal(PaymentMethod):
     def __init__(self, email: str):
         self.email = email
-    
+
     def charge(self, amount: Decimal) -> dict:
         return {'method': 'paypal', 'amount': amount}
 
 class BankTransfer(PaymentMethod):
     def __init__(self, account_number: str):
         self.account_number = account_number
-    
+
     def charge(self, amount: Decimal) -> dict:
         return {'method': 'bank_transfer', 'amount': amount}
 
@@ -433,10 +436,10 @@ class Order:
     def __init__(self, order_id: int):
         self.order_id = order_id
         self.payment_methods = []
-    
+
     def add_payment_method(self, method: PaymentMethod):
         self.payment_methods.append(method)
-    
+
     def process_payment(self, amount: Decimal):
         results = []
         for method in self.payment_methods:
@@ -465,7 +468,7 @@ results = order.process_payment(Decimal('99.99'))
 class Engine:
     def start(self):
         return "Engine started"
-    
+
     def stop(self):
         return "Engine stopped"
 
@@ -483,18 +486,18 @@ class Car:
         self.engine = Engine()
         self.gps = GPS()
         self.music_player = MusicPlayer()
-    
+
     # Delegate to engine
     def start(self):
         return self.engine.start()
-    
+
     def stop(self):
         return self.engine.stop()
-    
+
     # Delegate to GPS
     def navigate_to(self, destination: str):
         return self.gps.navigate(destination)
-    
+
     # Delegate to music player
     def play_music(self, song: str):
         return self.music_player.play(song)
@@ -567,7 +570,7 @@ class UserService:
         self.repository = repository
         self.cache = cache
         self.logger = logger
-    
+
     def get_user(self, user_id: int):
         # Use injected dependencies
         pass
@@ -577,7 +580,7 @@ def test_user_service():
     mock_repo = MockRepository()
     mock_cache = MockCache()
     mock_logger = MockLogger()
-    
+
     service = UserService(mock_repo, mock_cache, mock_logger)
     # Test...
 ```
@@ -633,6 +636,7 @@ class D:
 ## 📚 Summary
 
 ### Composition Advantages:
+
 ✅ Runtime flexibility
 ✅ Loose coupling
 ✅ Easy testing
@@ -640,15 +644,18 @@ class D:
 ✅ No fragile base class
 
 ### Inheritance Advantages:
+
 ✅ Natural polymorphism
 ✅ Code reuse
 ✅ Clear hierarchies
 ✅ Template Method pattern
 
 ### Recommendation:
+
 **Default to composition**. Use inheritance only for true "is-a" relationships and when polymorphism is essential.
 
 ### Golden Rule:
+
 "Favor composition over inheritance, but use inheritance when it makes sense."
 
 In Django and FastAPI, use mixins, dependency injection, and service layers to achieve flexible, maintainable designs.

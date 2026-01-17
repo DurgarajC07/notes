@@ -19,17 +19,17 @@ from abc import ABC, abstractmethod
 
 class Animal(ABC):
     """Abstract base class for animals"""
-    
+
     @abstractmethod
     def make_sound(self):
         """All animals must make a sound"""
         pass
-    
+
     @abstractmethod
     def move(self):
         """All animals must move"""
         pass
-    
+
     def breathe(self):
         """Concrete method - all animals breathe the same way"""
         return "Inhale, exhale"
@@ -40,14 +40,14 @@ class Animal(ABC):
 class Dog(Animal):
     def make_sound(self):
         return "Woof!"
-    
+
     def move(self):
         return "Running on four legs"
 
 class Bird(Animal):
     def make_sound(self):
         return "Chirp!"
-    
+
     def move(self):
         return "Flying"
 
@@ -113,7 +113,7 @@ class Person(ABC):
     def name(self):
         """Abstract property"""
         pass
-    
+
     @property
     @abstractmethod
     def age(self):
@@ -123,11 +123,11 @@ class Employee(Person):
     def __init__(self, name, age):
         self._name = name
         self._age = age
-    
+
     @property
     def name(self):
         return self._name
-    
+
     @property
     def age(self):
         return self._age
@@ -146,22 +146,22 @@ from typing import List, Optional
 
 class Repository(ABC):
     """Abstract repository interface"""
-    
+
     @abstractmethod
     def get_by_id(self, id: int):
         """Get entity by ID"""
         pass
-    
+
     @abstractmethod
     def get_all(self) -> List:
         """Get all entities"""
         pass
-    
+
     @abstractmethod
     def save(self, entity) -> None:
         """Save entity"""
         pass
-    
+
     @abstractmethod
     def delete(self, id: int) -> None:
         """Delete entity"""
@@ -171,17 +171,17 @@ class Repository(ABC):
 class PostgresUserRepository(Repository):
     def __init__(self, connection):
         self.connection = connection
-    
+
     def get_by_id(self, id: int):
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM users WHERE id = %s", (id,))
         return cursor.fetchone()
-    
+
     def get_all(self) -> List:
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM users")
         return cursor.fetchall()
-    
+
     def save(self, entity) -> None:
         cursor = self.connection.cursor()
         cursor.execute(
@@ -189,7 +189,7 @@ class PostgresUserRepository(Repository):
             (entity.name, entity.email)
         )
         self.connection.commit()
-    
+
     def delete(self, id: int) -> None:
         cursor = self.connection.cursor()
         cursor.execute("DELETE FROM users WHERE id = %s", (id,))
@@ -199,19 +199,19 @@ class PostgresUserRepository(Repository):
 class MongoUserRepository(Repository):
     def __init__(self, collection):
         self.collection = collection
-    
+
     def get_by_id(self, id: int):
         return self.collection.find_one({"_id": id})
-    
+
     def get_all(self) -> List:
         return list(self.collection.find())
-    
+
     def save(self, entity) -> None:
         self.collection.insert_one({
             "name": entity.name,
             "email": entity.email
         })
-    
+
     def delete(self, id: int) -> None:
         self.collection.delete_one({"_id": id})
 
@@ -231,17 +231,17 @@ from typing import Dict
 
 class PaymentGateway(ABC):
     """Abstract payment gateway"""
-    
+
     @abstractmethod
     def charge(self, amount: Decimal, card_token: str) -> Dict:
         """Charge a card"""
         pass
-    
+
     @abstractmethod
     def refund(self, transaction_id: str, amount: Decimal) -> Dict:
         """Refund a transaction"""
         pass
-    
+
     @abstractmethod
     def get_transaction(self, transaction_id: str) -> Dict:
         """Get transaction details"""
@@ -250,24 +250,24 @@ class PaymentGateway(ABC):
 class StripeGateway(PaymentGateway):
     def __init__(self, api_key: str):
         self.api_key = api_key
-    
+
     def charge(self, amount: Decimal, card_token: str) -> Dict:
         # Stripe API call
         import stripe
         stripe.api_key = self.api_key
-        
+
         charge = stripe.Charge.create(
             amount=int(amount * 100),  # Convert to cents
             currency='usd',
             source=card_token
         )
-        
+
         return {
             'transaction_id': charge.id,
             'status': charge.status,
             'amount': amount
         }
-    
+
     def refund(self, transaction_id: str, amount: Decimal) -> Dict:
         import stripe
         refund = stripe.Refund.create(
@@ -275,7 +275,7 @@ class StripeGateway(PaymentGateway):
             amount=int(amount * 100)
         )
         return {'refund_id': refund.id, 'status': refund.status}
-    
+
     def get_transaction(self, transaction_id: str) -> Dict:
         import stripe
         charge = stripe.Charge.retrieve(transaction_id)
@@ -289,7 +289,7 @@ class PayPalGateway(PaymentGateway):
     def __init__(self, client_id: str, secret: str):
         self.client_id = client_id
         self.secret = secret
-    
+
     def charge(self, amount: Decimal, card_token: str) -> Dict:
         # PayPal API call
         return {
@@ -297,11 +297,11 @@ class PayPalGateway(PaymentGateway):
             'status': 'completed',
             'amount': amount
         }
-    
+
     def refund(self, transaction_id: str, amount: Decimal) -> Dict:
         # PayPal refund API
         return {'refund_id': 'REFUND-123', 'status': 'completed'}
-    
+
     def get_transaction(self, transaction_id: str) -> Dict:
         # PayPal get transaction API
         return {'id': transaction_id, 'amount': 100.0, 'status': 'completed'}
@@ -310,7 +310,7 @@ class PayPalGateway(PaymentGateway):
 class PaymentService:
     def __init__(self, gateway: PaymentGateway):
         self.gateway = gateway
-    
+
     def process_payment(self, amount: Decimal, card_token: str):
         try:
             result = self.gateway.charge(amount, card_token)
@@ -335,27 +335,27 @@ import os
 
 class StorageBackend(ABC):
     """Abstract storage interface"""
-    
+
     @abstractmethod
     def save(self, file_path: str, content: BinaryIO) -> str:
         """Save file and return URL"""
         pass
-    
+
     @abstractmethod
     def load(self, file_path: str) -> bytes:
         """Load file content"""
         pass
-    
+
     @abstractmethod
     def delete(self, file_path: str) -> bool:
         """Delete file"""
         pass
-    
+
     @abstractmethod
     def exists(self, file_path: str) -> bool:
         """Check if file exists"""
         pass
-    
+
     @abstractmethod
     def get_url(self, file_path: str) -> str:
         """Get public URL"""
@@ -366,26 +366,26 @@ class S3Storage(StorageBackend):
         import boto3
         self.bucket = bucket
         self.s3_client = boto3.client('s3', region_name=region)
-    
+
     def save(self, file_path: str, content: BinaryIO) -> str:
         self.s3_client.upload_fileobj(content, self.bucket, file_path)
         return self.get_url(file_path)
-    
+
     def load(self, file_path: str) -> bytes:
         obj = self.s3_client.get_object(Bucket=self.bucket, Key=file_path)
         return obj['Body'].read()
-    
+
     def delete(self, file_path: str) -> bool:
         self.s3_client.delete_object(Bucket=self.bucket, Key=file_path)
         return True
-    
+
     def exists(self, file_path: str) -> bool:
         try:
             self.s3_client.head_object(Bucket=self.bucket, Key=file_path)
             return True
         except:
             return False
-    
+
     def get_url(self, file_path: str) -> str:
         return f"https://{self.bucket}.s3.amazonaws.com/{file_path}"
 
@@ -393,32 +393,32 @@ class LocalStorage(StorageBackend):
     def __init__(self, base_path: str):
         self.base_path = base_path
         os.makedirs(base_path, exist_ok=True)
-    
+
     def save(self, file_path: str, content: BinaryIO) -> str:
         full_path = os.path.join(self.base_path, file_path)
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
-        
+
         with open(full_path, 'wb') as f:
             f.write(content.read())
-        
+
         return self.get_url(file_path)
-    
+
     def load(self, file_path: str) -> bytes:
         full_path = os.path.join(self.base_path, file_path)
         with open(full_path, 'rb') as f:
             return f.read()
-    
+
     def delete(self, file_path: str) -> bool:
         full_path = os.path.join(self.base_path, file_path)
         if os.path.exists(full_path):
             os.remove(full_path)
             return True
         return False
-    
+
     def exists(self, file_path: str) -> bool:
         full_path = os.path.join(self.base_path, file_path)
         return os.path.exists(full_path)
-    
+
     def get_url(self, file_path: str) -> str:
         return f"/media/{file_path}"
 
@@ -426,18 +426,18 @@ class LocalStorage(StorageBackend):
 class FileUploadService:
     def __init__(self, storage: StorageBackend):
         self.storage = storage
-    
+
     def upload(self, file_name: str, content: BinaryIO) -> str:
         """Upload file and return URL"""
         # Generate unique file path
         import uuid
         file_path = f"uploads/{uuid.uuid4()}/{file_name}"
-        
+
         # Save to storage
         url = self.storage.save(file_path, content)
-        
+
         return url
-    
+
     def delete(self, file_path: str) -> bool:
         return self.storage.delete(file_path)
 ```
@@ -450,23 +450,23 @@ from typing import Any, Optional
 
 class Cache(ABC):
     """Abstract cache interface"""
-    
+
     @abstractmethod
     def get(self, key: str) -> Optional[Any]:
         pass
-    
+
     @abstractmethod
     def set(self, key: str, value: Any, ttl: int = 3600) -> bool:
         pass
-    
+
     @abstractmethod
     def delete(self, key: str) -> bool:
         pass
-    
+
     @abstractmethod
     def exists(self, key: str) -> bool:
         pass
-    
+
     @abstractmethod
     def clear(self) -> bool:
         pass
@@ -475,22 +475,22 @@ class RedisCache(Cache):
     def __init__(self, host='localhost', port=6379):
         import redis
         self.redis = redis.Redis(host=host, port=port, decode_responses=True)
-    
+
     def get(self, key: str) -> Optional[Any]:
         import json
         value = self.redis.get(key)
         return json.loads(value) if value else None
-    
+
     def set(self, key: str, value: Any, ttl: int = 3600) -> bool:
         import json
         return self.redis.setex(key, ttl, json.dumps(value))
-    
+
     def delete(self, key: str) -> bool:
         return bool(self.redis.delete(key))
-    
+
     def exists(self, key: str) -> bool:
         return bool(self.redis.exists(key))
-    
+
     def clear(self) -> bool:
         self.redis.flushdb()
         return True
@@ -499,7 +499,7 @@ class MemoryCache(Cache):
     def __init__(self):
         self._cache = {}
         self._ttl = {}
-    
+
     def get(self, key: str) -> Optional[Any]:
         import time
         if key in self._cache:
@@ -509,23 +509,23 @@ class MemoryCache(Cache):
                 del self._cache[key]
                 del self._ttl[key]
         return None
-    
+
     def set(self, key: str, value: Any, ttl: int = 3600) -> bool:
         import time
         self._cache[key] = value
         self._ttl[key] = time.time() + ttl
         return True
-    
+
     def delete(self, key: str) -> bool:
         if key in self._cache:
             del self._cache[key]
             del self._ttl[key]
             return True
         return False
-    
+
     def exists(self, key: str) -> bool:
         return self.get(key) is not None
-    
+
     def clear(self) -> bool:
         self._cache.clear()
         self._ttl.clear()
@@ -592,7 +592,7 @@ class Animal(ABC):
     def make_sound(self):
         """Subclass must implement"""
         pass
-    
+
     def speak(self):
         """Common method using abstract method"""
         sound = self.make_sound()
@@ -609,17 +609,17 @@ from typing import Optional, Dict
 
 class AuthenticationBackend(ABC):
     """Abstract authentication interface"""
-    
+
     @abstractmethod
     def authenticate(self, credentials: Dict) -> Optional[Dict]:
         """Authenticate user and return user data"""
         pass
-    
+
     @abstractmethod
     def validate_token(self, token: str) -> bool:
         """Validate authentication token"""
         pass
-    
+
     @abstractmethod
     def revoke_token(self, token: str) -> bool:
         """Revoke authentication token"""
@@ -628,16 +628,16 @@ class AuthenticationBackend(ABC):
 class JWTAuthentication(AuthenticationBackend):
     def __init__(self, secret_key: str):
         self.secret_key = secret_key
-    
+
     def authenticate(self, credentials: Dict) -> Optional[Dict]:
         import jwt
         from django.contrib.auth import authenticate
-        
+
         user = authenticate(
             username=credentials.get('username'),
             password=credentials.get('password')
         )
-        
+
         if user:
             token = jwt.encode(
                 {'user_id': user.id, 'username': user.username},
@@ -646,7 +646,7 @@ class JWTAuthentication(AuthenticationBackend):
             )
             return {'user': user, 'token': token}
         return None
-    
+
     def validate_token(self, token: str) -> bool:
         import jwt
         try:
@@ -654,7 +654,7 @@ class JWTAuthentication(AuthenticationBackend):
             return True
         except jwt.InvalidTokenError:
             return False
-    
+
     def revoke_token(self, token: str) -> bool:
         # Add to blacklist in Redis
         return True
@@ -663,11 +663,11 @@ class OAuth2Authentication(AuthenticationBackend):
     def authenticate(self, credentials: Dict) -> Optional[Dict]:
         # OAuth2 flow
         pass
-    
+
     def validate_token(self, token: str) -> bool:
         # Validate OAuth2 token
         pass
-    
+
     def revoke_token(self, token: str) -> bool:
         # Revoke OAuth2 token
         pass
@@ -682,21 +682,21 @@ from abc import ABC, abstractmethod
 
 class DataLoader(ABC):
     """Abstract data loader with lazy loading"""
-    
+
     def __init__(self):
         self._cache = None
-    
+
     @abstractmethod
     def _fetch_data(self):
         """Fetch data from source"""
         pass
-    
+
     def get_data(self):
         """Get data with lazy loading"""
         if self._cache is None:
             self._cache = self._fetch_data()
         return self._cache
-    
+
     def refresh(self):
         """Force refresh"""
         self._cache = None
@@ -706,7 +706,7 @@ class DatabaseLoader(DataLoader):
     def __init__(self, connection):
         super().__init__()
         self.connection = connection
-    
+
     def _fetch_data(self):
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM data")
@@ -716,7 +716,7 @@ class APILoader(DataLoader):
     def __init__(self, url):
         super().__init__()
         self.url = url
-    
+
     def _fetch_data(self):
         import requests
         response = requests.get(self.url)
@@ -733,23 +733,23 @@ from django.db.models import QuerySet
 
 class BaseService(ABC):
     """Abstract service layer"""
-    
+
     @abstractmethod
     def get_all(self) -> QuerySet:
         pass
-    
+
     @abstractmethod
     def get_by_id(self, id: int) -> Optional[object]:
         pass
-    
+
     @abstractmethod
     def create(self, **kwargs) -> object:
         pass
-    
+
     @abstractmethod
     def update(self, id: int, **kwargs) -> object:
         pass
-    
+
     @abstractmethod
     def delete(self, id: int) -> bool:
         pass
@@ -761,23 +761,23 @@ from .base import BaseService
 class UserService(BaseService):
     def get_all(self) -> QuerySet:
         return User.objects.all()
-    
+
     def get_by_id(self, id: int) -> Optional[User]:
         try:
             return User.objects.get(id=id)
         except User.DoesNotExist:
             return None
-    
+
     def create(self, **kwargs) -> User:
         return User.objects.create_user(**kwargs)
-    
+
     def update(self, id: int, **kwargs) -> User:
         user = self.get_by_id(id)
         for key, value in kwargs.items():
             setattr(user, key, value)
         user.save()
         return user
-    
+
     def delete(self, id: int) -> bool:
         user = self.get_by_id(id)
         if user:
@@ -795,6 +795,7 @@ class UserService(BaseService):
 ### Q2: When should you use abstract base classes?
 
 **Answer**: Use ABCs when:
+
 - Defining interfaces/contracts
 - Building frameworks/libraries
 - Multiple implementations needed (payment gateways, storage backends)
@@ -820,6 +821,7 @@ class Derived(Base):
 ### Q4: What's the difference between ABC and Protocol (Python 3.8+)?
 
 **Answer**:
+
 - **ABC**: Explicit inheritance required, runtime checks
 - **Protocol**: Structural subtyping (duck typing), no inheritance needed
 
@@ -876,7 +878,7 @@ class Base(ABC):
     @abstractmethod
     def class_method(cls):
         pass
-    
+
     @staticmethod
     @abstractmethod
     def static_method():
@@ -886,12 +888,14 @@ class Base(ABC):
 ## 📚 Summary
 
 Abstract Base Classes provide:
+
 - Interface definition and enforcement
 - Multiple implementations with same contract
 - Framework and library design patterns
 - Type safety and documentation
 
 **Key Takeaways**:
+
 1. Use `@abstractmethod` to mark required methods
 2. Subclasses must implement all abstract methods
 3. Can't instantiate abstract classes directly

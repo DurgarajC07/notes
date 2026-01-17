@@ -27,6 +27,7 @@ Behavioral patterns are concerned with algorithms and the assignment of responsi
 ## 1️⃣ Observer Pattern
 
 ### Concept
+
 Define one-to-many dependency so when one object changes state, all dependents are notified automatically.
 
 ### Basic Observer
@@ -43,13 +44,13 @@ class Observer(ABC):
 class Subject:
     def __init__(self):
         self._observers: List[Observer] = []
-    
+
     def attach(self, observer: Observer):
         self._observers.append(observer)
-    
+
     def detach(self, observer: Observer):
         self._observers.remove(observer)
-    
+
     def notify(self, message: str):
         for observer in self._observers:
             observer.update(message)
@@ -127,7 +128,7 @@ from django.apps import AppConfig
 class UsersConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'users'
-    
+
     def ready(self):
         import users.signals  # Import signals
 ```
@@ -144,29 +145,29 @@ class Event:
     name: str
     data: Dict
     timestamp: datetime = None
-    
+
     def __post_init__(self):
         if self.timestamp is None:
             self.timestamp = datetime.now()
 
 class EventBus:
     """Centralized event management"""
-    
+
     def __init__(self):
         self._subscribers: Dict[str, List[Callable]] = {}
-    
+
     def subscribe(self, event_name: str, handler: Callable):
         """Subscribe to event"""
         if event_name not in self._subscribers:
             self._subscribers[event_name] = []
-        
+
         self._subscribers[event_name].append(handler)
-    
+
     def unsubscribe(self, event_name: str, handler: Callable):
         """Unsubscribe from event"""
         if event_name in self._subscribers:
             self._subscribers[event_name].remove(handler)
-    
+
     def publish(self, event: Event):
         """Publish event to all subscribers"""
         if event.name in self._subscribers:
@@ -206,17 +207,17 @@ app = FastAPI()
 
 class ConnectionManager:
     """Manage WebSocket connections (Observer pattern)"""
-    
+
     def __init__(self):
         self.active_connections: List[WebSocket] = []
-    
+
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
-    
+
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
-    
+
     async def broadcast(self, message: str):
         """Notify all observers"""
         for connection in self.active_connections:
@@ -245,6 +246,7 @@ async def notify_all(message: str):
 ## 2️⃣ Strategy Pattern
 
 ### Concept
+
 Define family of algorithms, encapsulate each one, and make them interchangeable. Strategy lets algorithm vary independently from clients.
 
 ### Payment Strategy
@@ -263,7 +265,7 @@ class CreditCardPayment(PaymentStrategy):
     def __init__(self, card_number: str, cvv: str):
         self.card_number = card_number
         self.cvv = cvv
-    
+
     def pay(self, amount: Decimal) -> Dict:
         # Process credit card payment
         return {
@@ -276,7 +278,7 @@ class CreditCardPayment(PaymentStrategy):
 class PayPalPayment(PaymentStrategy):
     def __init__(self, email: str):
         self.email = email
-    
+
     def pay(self, amount: Decimal) -> Dict:
         # Process PayPal payment
         return {
@@ -289,7 +291,7 @@ class PayPalPayment(PaymentStrategy):
 class CryptocurrencyPayment(PaymentStrategy):
     def __init__(self, wallet_address: str):
         self.wallet_address = wallet_address
-    
+
     def pay(self, amount: Decimal) -> Dict:
         # Process crypto payment
         return {
@@ -303,10 +305,10 @@ class CryptocurrencyPayment(PaymentStrategy):
 class PaymentProcessor:
     def __init__(self, strategy: PaymentStrategy):
         self.strategy = strategy
-    
+
     def set_strategy(self, strategy: PaymentStrategy):
         self.strategy = strategy
-    
+
     def process_payment(self, amount: Decimal) -> Dict:
         return self.strategy.pay(amount)
 
@@ -342,7 +344,7 @@ class RegularPricing(PricingStrategy):
 class DiscountPricing(PricingStrategy):
     def __init__(self, discount_percent: Decimal):
         self.discount_percent = discount_percent
-    
+
     def calculate_price(self, base_price: Decimal) -> Decimal:
         discount = base_price * (self.discount_percent / 100)
         return base_price - discount
@@ -350,7 +352,7 @@ class DiscountPricing(PricingStrategy):
 class BulkPricing(PricingStrategy):
     def __init__(self, quantity: int):
         self.quantity = quantity
-    
+
     def calculate_price(self, base_price: Decimal) -> Decimal:
         if self.quantity >= 10:
             return base_price * Decimal('0.8')  # 20% off
@@ -361,7 +363,7 @@ class BulkPricing(PricingStrategy):
 class SeasonalPricing(PricingStrategy):
     def __init__(self, season: str):
         self.season = season
-    
+
     def calculate_price(self, base_price: Decimal) -> Decimal:
         multipliers = {
             'summer': Decimal('1.2'),  # 20% increase
@@ -376,10 +378,10 @@ class Product:
         self.name = name
         self.base_price = base_price
         self.pricing_strategy = RegularPricing()
-    
+
     def set_pricing_strategy(self, strategy: PricingStrategy):
         self.pricing_strategy = strategy
-    
+
     def get_price(self) -> Decimal:
         return self.pricing_strategy.calculate_price(self.base_price)
 
@@ -420,7 +422,7 @@ class TokenAuthentication(AuthenticationStrategy):
             # Validate token and return user
             return self._get_user_from_token(token)
         return None
-    
+
     def _get_user_from_token(self, token: str):
         # JWT validation
         return {'id': 1, 'username': 'john'}
@@ -436,14 +438,14 @@ from django.http import JsonResponse
 
 class BaseAPIView(View):
     authentication_strategy = SessionAuthentication()
-    
+
     def dispatch(self, request, *args, **kwargs):
         # Use strategy
         user = self.authentication_strategy.authenticate(request)
-        
+
         if not user:
             return JsonResponse({'error': 'Unauthorized'}, status=401)
-        
+
         request.auth_user = user
         return super().dispatch(request, *args, **kwargs)
 
@@ -457,6 +459,7 @@ class OAuth2APIView(BaseAPIView):
 ## 3️⃣ Command Pattern
 
 ### Concept
+
 Encapsulate request as an object, allowing parameterization of clients with queues, requests, and operations.
 
 ### Basic Command
@@ -468,7 +471,7 @@ class Command(ABC):
     @abstractmethod
     def execute(self):
         pass
-    
+
     @abstractmethod
     def undo(self):
         pass
@@ -477,13 +480,13 @@ class Command(ABC):
 class TextEditor:
     def __init__(self):
         self.content = ""
-    
+
     def write(self, text: str):
         self.content += text
-    
+
     def delete(self, length: int):
         self.content = self.content[:-length]
-    
+
     def read(self):
         return self.content
 
@@ -492,10 +495,10 @@ class WriteCommand(Command):
     def __init__(self, editor: TextEditor, text: str):
         self.editor = editor
         self.text = text
-    
+
     def execute(self):
         self.editor.write(self.text)
-    
+
     def undo(self):
         self.editor.delete(len(self.text))
 
@@ -504,11 +507,11 @@ class DeleteCommand(Command):
         self.editor = editor
         self.length = length
         self.deleted_text = ""
-    
+
     def execute(self):
         self.deleted_text = self.editor.content[-self.length:]
         self.editor.delete(self.length)
-    
+
     def undo(self):
         self.editor.write(self.deleted_text)
 
@@ -517,18 +520,18 @@ class CommandManager:
     def __init__(self):
         self.history = []
         self.redo_stack = []
-    
+
     def execute(self, command: Command):
         command.execute()
         self.history.append(command)
         self.redo_stack.clear()
-    
+
     def undo(self):
         if self.history:
             command = self.history.pop()
             command.undo()
             self.redo_stack.append(command)
-    
+
     def redo(self):
         if self.redo_stack:
             command = self.redo_stack.pop()
@@ -562,11 +565,11 @@ class Task(ABC):
     def __init__(self):
         self.created_at = datetime.now()
         self.executed_at = None
-    
+
     @abstractmethod
     def execute(self):
         pass
-    
+
     def mark_executed(self):
         self.executed_at = datetime.now()
 
@@ -576,7 +579,7 @@ class SendEmailTask(Task):
         self.to = to
         self.subject = subject
         self.body = body
-    
+
     def execute(self):
         print(f"Sending email to {self.to}: {self.subject}")
         time.sleep(0.5)  # Simulate email sending
@@ -586,7 +589,7 @@ class ProcessImageTask(Task):
     def __init__(self, image_path: str):
         super().__init__()
         self.image_path = image_path
-    
+
     def execute(self):
         print(f"Processing image: {self.image_path}")
         time.sleep(1)  # Simulate image processing
@@ -596,7 +599,7 @@ class GenerateReportTask(Task):
     def __init__(self, report_type: str):
         super().__init__()
         self.report_type = report_type
-    
+
     def execute(self):
         print(f"Generating {self.report_type} report")
         time.sleep(0.7)
@@ -607,16 +610,16 @@ class TaskQueue:
     def __init__(self):
         self.queue: List[Task] = []
         self.completed: List[Task] = []
-    
+
     def add_task(self, task: Task):
         self.queue.append(task)
-    
+
     def process_all(self):
         while self.queue:
             task = self.queue.pop(0)
             task.execute()
             self.completed.append(task)
-    
+
     def get_stats(self):
         return {
             'pending': len(self.queue),
@@ -649,11 +652,11 @@ class BackgroundTask(ABC):
 class SendWelcomeEmailTask(BackgroundTask):
     def __init__(self, user_id: int):
         self.user_id = user_id
-    
+
     def run(self):
         from django.contrib.auth.models import User
         from django.core.mail import send_mail
-        
+
         user = User.objects.get(id=self.user_id)
         send_mail(
             subject='Welcome!',
@@ -668,7 +671,7 @@ def execute_task(task_class_name: str, **kwargs):
     tasks = {
         'SendWelcomeEmailTask': SendWelcomeEmailTask
     }
-    
+
     task_class = tasks.get(task_class_name)
     if task_class:
         task = task_class(**kwargs)
@@ -682,16 +685,17 @@ class RegisterView(View):
     def post(self, request):
         # Create user...
         user = User.objects.create_user(...)
-        
+
         # Queue background task
         execute_task.delay('SendWelcomeEmailTask', user_id=user.id)
-        
+
         return JsonResponse({'status': 'User created'})
 ```
 
 ## 4️⃣ State Pattern
 
 ### Concept
+
 Allow object to alter its behavior when internal state changes. Object appears to change its class.
 
 ### Order State Machine
@@ -703,11 +707,11 @@ class OrderState(ABC):
     @abstractmethod
     def process(self, order):
         pass
-    
+
     @abstractmethod
     def cancel(self, order):
         pass
-    
+
     @abstractmethod
     def ship(self, order):
         pass
@@ -716,22 +720,22 @@ class PendingState(OrderState):
     def process(self, order):
         print("Processing payment...")
         order.set_state(ProcessingState())
-    
+
     def cancel(self, order):
         print("Order cancelled")
         order.set_state(CancelledState())
-    
+
     def ship(self, order):
         print("Cannot ship pending order")
 
 class ProcessingState(OrderState):
     def process(self, order):
         print("Already processing")
-    
+
     def cancel(self, order):
         print("Order cancelled")
         order.set_state(CancelledState())
-    
+
     def ship(self, order):
         print("Shipping order...")
         order.set_state(ShippedState())
@@ -739,20 +743,20 @@ class ProcessingState(OrderState):
 class ShippedState(OrderState):
     def process(self, order):
         print("Already shipped")
-    
+
     def cancel(self, order):
         print("Cannot cancel shipped order")
-    
+
     def ship(self, order):
         print("Already shipped")
 
 class CancelledState(OrderState):
     def process(self, order):
         print("Cannot process cancelled order")
-    
+
     def cancel(self, order):
         print("Already cancelled")
-    
+
     def ship(self, order):
         print("Cannot ship cancelled order")
 
@@ -760,16 +764,16 @@ class CancelledState(OrderState):
 class Order:
     def __init__(self):
         self.state = PendingState()
-    
+
     def set_state(self, state: OrderState):
         self.state = state
-    
+
     def process(self):
         self.state.process(self)
-    
+
     def cancel(self):
         self.state.cancel(self)
-    
+
     def ship(self):
         self.state.ship(self)
 
@@ -795,9 +799,9 @@ class Order(models.Model):
         ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled')
     ]
-    
+
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    
+
     def can_transition_to(self, new_status: str) -> bool:
         """Define valid state transitions"""
         transitions = {
@@ -808,23 +812,23 @@ class Order(models.Model):
             'cancelled': []
         }
         return new_status in transitions.get(self.status, [])
-    
+
     def transition_to(self, new_status: str):
         if not self.can_transition_to(new_status):
             raise ValueError(f"Cannot transition from {self.status} to {new_status}")
-        
+
         self.status = new_status
         self.save()
-    
+
     def process(self):
         self.transition_to('processing')
-    
+
     def ship(self):
         self.transition_to('shipped')
-    
+
     def deliver(self):
         self.transition_to('delivered')
-    
+
     def cancel(self):
         if self.status in ['pending', 'processing']:
             self.transition_to('cancelled')
@@ -867,6 +871,7 @@ class Strategy(ABC):
 ## 📚 Summary
 
 Behavioral patterns handle communication between objects:
+
 - **Observer**: Event notification system
 - **Strategy**: Interchangeable algorithms
 - **Command**: Encapsulate requests (undo/redo, queues)

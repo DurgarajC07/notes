@@ -7,6 +7,7 @@
 ### Nominal vs Structural Subtyping
 
 **Nominal Subtyping** (ABC, traditional inheritance):
+
 ```python
 from abc import ABC, abstractmethod
 
@@ -19,6 +20,7 @@ class Dog(Animal):  # Must explicitly inherit
 ```
 
 **Structural Subtyping** (Protocol):
+
 ```python
 from typing import Protocol
 
@@ -36,13 +38,13 @@ make_speak(Dog())  # Type checker accepts this!
 
 ### Key Differences
 
-| Feature | ABC (Nominal) | Protocol (Structural) |
-|---------|---------------|----------------------|
-| Inheritance | Required | Not required |
-| Type checking | Runtime + static | Primarily static |
-| Flexibility | Less flexible | More flexible |
-| Duck typing | No | Yes |
-| Use case | Explicit contracts | Implicit interfaces |
+| Feature       | ABC (Nominal)      | Protocol (Structural) |
+| ------------- | ------------------ | --------------------- |
+| Inheritance   | Required           | Not required          |
+| Type checking | Runtime + static   | Primarily static      |
+| Flexibility   | Less flexible      | More flexible         |
+| Duck typing   | No                 | Yes                   |
+| Use case      | Explicit contracts | Implicit interfaces   |
 
 ## 🧠 Why Protocols Matter
 
@@ -105,20 +107,20 @@ class Persistable(Protocol):
 class User:
     def save(self) -> None:
         print("Saving user")
-    
+
     def load(self, id: int) -> None:
         print(f"Loading user {id}")
-    
+
     def delete(self) -> None:
         print("Deleting user")
 
 class Product:
     def save(self) -> None:
         print("Saving product")
-    
+
     def load(self, id: int) -> None:
         print(f"Loading product {id}")
-    
+
     def delete(self) -> None:
         print("Deleting product")
 
@@ -141,7 +143,7 @@ class Named(Protocol):
 class Person:
     def __init__(self, name: str):
         self._name = name
-    
+
     @property
     def name(self) -> str:
         return self._name
@@ -149,7 +151,7 @@ class Person:
 class Company:
     def __init__(self, name: str):
         self._name = name
-    
+
     @property
     def name(self) -> str:
         return self._name
@@ -208,16 +210,16 @@ from django.db.models import Model
 
 class Repository(Protocol):
     """Protocol for any repository implementation"""
-    
+
     def get_by_id(self, id: int) -> Optional[Model]:
         ...
-    
+
     def get_all(self) -> List[Model]:
         ...
-    
+
     def save(self, entity: Model) -> Model:
         ...
-    
+
     def delete(self, id: int) -> bool:
         ...
 
@@ -229,15 +231,15 @@ class DjangoUserRepository:
             return User.objects.get(id=id)
         except User.DoesNotExist:
             return None
-    
+
     def get_all(self) -> List[Model]:
         from django.contrib.auth.models import User
         return list(User.objects.all())
-    
+
     def save(self, entity: Model) -> Model:
         entity.save()
         return entity
-    
+
     def delete(self, id: int) -> bool:
         from django.contrib.auth.models import User
         deleted, _ = User.objects.filter(id=id).delete()
@@ -247,12 +249,12 @@ class DjangoUserRepository:
 class UserService:
     def __init__(self, repository: Repository):
         self.repository = repository
-    
+
     def create_user(self, username: str, email: str):
         from django.contrib.auth.models import User
         user = User(username=username, email=email)
         return self.repository.save(user)
-    
+
     def get_user(self, user_id: int):
         return self.repository.get_by_id(user_id)
 
@@ -277,17 +279,17 @@ class RedisCache:
     def __init__(self):
         import redis
         self.client = redis.Redis(host='localhost', port=6379)
-    
+
     def get(self, key: str) -> Optional[Any]:
         data = self.client.get(key)
         return pickle.loads(data) if data else None
-    
+
     def set(self, key: str, value: Any, ttl: int = 3600) -> bool:
         return self.client.setex(key, ttl, pickle.dumps(value))
-    
+
     def delete(self, key: str) -> bool:
         return bool(self.client.delete(key))
-    
+
     def clear(self) -> bool:
         self.client.flushdb()
         return True
@@ -296,17 +298,17 @@ class RedisCache:
 class MemoryCache:
     def __init__(self):
         self._cache = {}
-    
+
     def get(self, key: str) -> Optional[Any]:
         return self._cache.get(key)
-    
+
     def set(self, key: str, value: Any, ttl: int = 3600) -> bool:
         self._cache[key] = value
         return True
-    
+
     def delete(self, key: str) -> bool:
         return self._cache.pop(key, None) is not None
-    
+
     def clear(self) -> bool:
         self._cache.clear()
         return True
@@ -315,22 +317,22 @@ class MemoryCache:
 class CachedUserService:
     def __init__(self, cache: Cache):
         self.cache = cache
-    
+
     def get_user(self, user_id: int):
         cache_key = f"user:{user_id}"
-        
+
         # Try cache
         cached = self.cache.get(cache_key)
         if cached:
             return cached
-        
+
         # Fetch from database
         from django.contrib.auth.models import User
         user = User.objects.get(id=user_id)
-        
+
         # Cache result
         self.cache.set(cache_key, user, ttl=600)
-        
+
         return user
 
 # Can use either implementation
@@ -378,11 +380,11 @@ class PushNotifier:
 class NotificationService:
     def __init__(self, notifier: Notifier):
         self.notifier = notifier
-    
+
     def notify_user(self, user_id: int, message: str):
         from django.contrib.auth.models import User
         user = User.objects.get(id=user_id)
-        
+
         return self.notifier.send(user.email, message)
 
 # Flexible - can use any notifier
@@ -404,7 +406,7 @@ app = FastAPI()
 class UserRepository(Protocol):
     def get_user(self, user_id: int) -> Optional[dict]:
         ...
-    
+
     def create_user(self, username: str, email: str) -> dict:
         ...
 
@@ -413,7 +415,7 @@ class DatabaseUserRepository:
     def get_user(self, user_id: int) -> Optional[dict]:
         # Query database
         return {"id": user_id, "username": "john"}
-    
+
     def create_user(self, username: str, email: str) -> dict:
         # Insert into database
         return {"id": 1, "username": username, "email": email}
@@ -423,10 +425,10 @@ class InMemoryUserRepository:
     def __init__(self):
         self.users = {}
         self.next_id = 1
-    
+
     def get_user(self, user_id: int) -> Optional[dict]:
         return self.users.get(user_id)
-    
+
     def create_user(self, username: str, email: str) -> dict:
         user = {
             "id": self.next_id,
@@ -560,7 +562,7 @@ class SMTPEmailSender:
 class MockEmailSender:
     def __init__(self):
         self.sent_emails = []
-    
+
     def send(self, to: str, subject: str, body: str) -> bool:
         self.sent_emails.append((to, subject, body))
         return True
@@ -569,7 +571,7 @@ class MockEmailSender:
 class UserRegistrationService:
     def __init__(self, email_sender: EmailSender):
         self.email_sender = email_sender
-    
+
     def register(self, email: str):
         # Register user...
         self.email_sender.send(email, "Welcome", "Welcome to our service!")
@@ -578,9 +580,9 @@ class UserRegistrationService:
 def test_registration():
     mock = MockEmailSender()
     service = UserRegistrationService(mock)
-    
+
     service.register("user@example.com")
-    
+
     assert len(mock.sent_emails) == 1
     assert mock.sent_emails[0][0] == "user@example.com"
 ```
@@ -676,6 +678,7 @@ class Correct(Protocol):
 ### Q1: Protocol vs ABC - when to use each?
 
 **Answer**:
+
 - **Protocol**: Duck typing, third-party classes, no inheritance needed, gradual typing
 - **ABC**: Explicit contracts, you control implementations, shared behavior, runtime enforcement
 
@@ -700,6 +703,7 @@ class MyClass:  # No inheritance needed
 ## 📚 Summary
 
 **Protocols** (PEP 544):
+
 - ✅ Structural subtyping (duck typing with type safety)
 - ✅ No inheritance required
 - ✅ Static type checking
@@ -707,6 +711,7 @@ class MyClass:  # No inheritance needed
 - ✅ Flexible, testable
 
 **When to Use**:
+
 - Type-checking existing code
 - Third-party library interfaces
 - Plugin systems
@@ -714,6 +719,7 @@ class MyClass:  # No inheritance needed
 - Gradual typing migration
 
 **Protocol vs ABC**:
+
 - Protocol → Structural, implicit, flexible
 - ABC → Nominal, explicit, enforced
 
