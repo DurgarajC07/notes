@@ -38,9 +38,9 @@
 - ✅ `01_Execution_Context_Scope.md` - Creation phase, scope chain, this binding
 - ✅ `02_Hoisting_TDZ.md` - Temporal Dead Zone, var vs let vs const
 - ✅ `03_Closures_Scope_Chain.md` - Lexical scoping, memory implications
-- `04_Prototypal_Inheritance.md` - Prototype chain, **proto**, Object.create
+- ✅ `04_Prototypal_Inheritance.md` - Prototype chain, **proto**, Object.create
 - `05_This_Binding.md` - Implicit, explicit, arrow functions
-- `06_Event_Loop_Microtasks.md` - Call stack, task queue, microtask queue
+- ✅ `06_Event_Loop_Microtasks.md` - Call stack, task queue, microtask queue
 - `07_Coercion_Type_Conversion.md` - == vs ===, implicit coercion
 - `README.md` - Section overview and learning path
 
@@ -92,7 +92,7 @@
 #### `07_Browser_Internals/`
 
 - `01_Rendering_Engine.md` - WebKit, Blink, Gecko architecture
-- `02_Critical_Rendering_Path.md` - DOM, CSSOM, render tree
+- ✅ `02_Critical_Rendering_Path.md` - DOM, CSSOM, render tree
 - `03_Compositor_Thread.md` - Layer promotion, GPU acceleration
 - `04_Main_Thread_Work.md` - Long tasks, blocking, yielding
 - `05_Browser_Process_Model.md` - Site isolation, process per tab
@@ -188,7 +188,7 @@
 
 #### `18_Hooks_Deep_Dive/`
 
-- `01_useState_useReducer.md` - State management, batching
+- ✅ `01_useState_useReducer.md` - State management, batching
 - `02_useEffect_Lifecycle.md` - Dependencies, cleanup, timing
 - `03_useRef_useMemo.md` - References, memoization
 - `04_useCallback_Performance.md` - When to use, pitfalls
@@ -230,7 +230,7 @@
 
 #### `23_React_Testing/`
 
-- `01_Testing_Library.md` - Queries, user events, async
+- ✅ `01_Testing_Library.md` - Queries, user events, async
 - `02_Unit_Testing.md` - Jest, component testing
 - `03_Integration_Testing.md` - Multi-component testing
 - `04_E2E_Testing.md` - Playwright, Cypress
@@ -250,7 +250,7 @@
 
 #### `25_CSS_Advanced/`
 
-- `01_Grid_Layout.md` - Grid template, areas, auto-placement
+- ✅ `01_Grid_Layout.md` - Grid template, areas, auto-placement
 - `02_Flexbox_Deep.md` - Flex grow, shrink, basis
 - `03_Custom_Properties.md` - CSS variables, theming
 - `04_Containment.md` - Contain property, performance
@@ -279,8 +279,8 @@
 
 #### `28_Web_Security/`
 
-- `01_XSS_Attacks.md` - Types, prevention, sanitization
-- `02_CSRF_Protection.md` - Token-based, SameSite
+- ✅ `01_XSS_Attacks.md` - Types, prevention, sanitization
+- ✅ `02_CSRF_Protection.md` - Token-based, SameSite
 - `03_CORS_Policies.md` - Preflight, credentials
 - `04_CSP_Headers.md` - Content Security Policy
 - `05_JWT_Security.md` - Token storage, refresh tokens
@@ -327,7 +327,7 @@
 - `03_CDN_Strategies.md` - Edge caching, geo-distribution
 - `04_Caching_Strategies.md` - Service workers, HTTP caching
 - `05_Scaling_Patterns.md` - Load balancing, auto-scaling
-- `06_Real_Time_Systems.md` - WebSockets, SSE, polling
+- ✅ `06_Real_Time_Systems.md` - WebSockets, SSE, polling
 
 #### `34_Real_World_Case_Studies/`
 
@@ -340,8 +340,8 @@
 
 #### `35_Interview_Questions/`
 
-- `01_JavaScript_Questions.md` - Fundamentals, advanced topics
-- `02_React_Questions.md` - Lifecycle, hooks, performance
+- ✅ `01_JavaScript_Questions.md` - Fundamentals, advanced topics
+- ✅ `02_React_Questions.md` - Lifecycle, hooks, performance
 - `03_TypeScript_Questions.md` - Type system, generics
 - `04_System_Design_Questions.md` - Design large-scale apps
 - `05_Coding_Challenges.md` - Algorithm problems, solutions
