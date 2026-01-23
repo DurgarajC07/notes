@@ -189,15 +189,15 @@
 #### `18_Hooks_Deep_Dive/`
 
 - ✅ `01_useState_useReducer.md` - State management, batching
-- `02_useEffect_Lifecycle.md` - Dependencies, cleanup, timing
-- `03_useRef_useMemo.md` - References, memoization
-- `04_useCallback_Performance.md` - When to use, pitfalls
-- `05_Custom_Hooks.md` - Patterns, composition, testing
+- ✅ `02_useEffect_Lifecycle.md` - Dependencies, cleanup, timing
+- ✅ `03_useRef_useMemo.md` - References, memoization
+- ✅ `04_useCallback_Performance.md` - When to use, pitfalls
+- ✅ `05_Custom_Hooks.md` - Patterns, composition, testing
 - `06_useTransition_Concurrent.md` - React 18 features
 
 #### `19_State_Management/`
 
-- `01_Context_API.md` - Provider, Consumer, performance
+- ✅ `01_Context_API.md` - Provider, Consumer, performance
 - `02_Redux_Toolkit.md` - Slices, thunks, RTK Query
 - `03_Zustand.md` - Simple state management
 - `04_Jotai_Recoil.md` - Atomic state management
@@ -248,14 +248,14 @@
 - `04_Accessibility_Attributes.md` - ARIA, roles, landmarks
 - `05_Microdata_Schema.md` - Structured data, rich snippets
 
-#### `25_CSS_Advanced/`
+#### `09_CSS_Advanced/`
 
 - ✅ `01_Grid_Layout.md` - Grid template, areas, auto-placement
 - `02_Flexbox_Deep.md` - Flex grow, shrink, basis
-- `03_Custom_Properties.md` - CSS variables, theming
-- `04_Containment.md` - Contain property, performance
-- `05_Cascade_Layers.md` - @layer, specificity management
-- `06_Container_Queries.md` - Component-based responsive
+- ✅ `03_CSS_in_JS.md` - styled-components, Emotion
+- `04_Custom_Properties.md` - CSS variables, theming
+- `05_Containment.md` - Contain property, performance
+- `06_Cascade_Layers.md` - @layer, specificity management
 
 #### `26_Responsive_Design/`
 
@@ -277,13 +277,13 @@
 
 ### **🟥 Production Engineering (28-36)**
 
-#### `28_Web_Security/`
+#### `28_Security/`
 
 - ✅ `01_XSS_Attacks.md` - Types, prevention, sanitization
 - ✅ `02_CSRF_Protection.md` - Token-based, SameSite
-- `03_CORS_Policies.md` - Preflight, credentials
+- ✅ `03_CORS_Policies.md` - Preflight, credentials
 - `04_CSP_Headers.md` - Content Security Policy
-- `05_JWT_Security.md` - Token storage, refresh tokens
+- ✅ `05_JWT_Security.md` - Token storage, refresh tokens
 - `06_OAuth_Flow.md` - Authorization code, PKCE
 - `07_OWASP_Top_10.md` - Frontend vulnerabilities
 
@@ -298,7 +298,7 @@
 
 #### `30_Build_Tools/`
 
-- `01_Webpack_Deep.md` - Loaders, plugins, optimization
+- ✅ `01_Webpack_Deep.md` - Loaders, plugins, optimization
 - `02_Vite.md` - ESM, HMR, build performance
 - `03_esbuild.md` - Speed, plugins, limitations
 - `04_Module_Federation.md` - Micro-frontends, shared deps
@@ -342,8 +342,8 @@
 
 - ✅ `01_JavaScript_Questions.md` - Fundamentals, advanced topics
 - ✅ `02_React_Questions.md` - Lifecycle, hooks, performance
-- `03_TypeScript_Questions.md` - Type system, generics
-- `04_System_Design_Questions.md` - Design large-scale apps
+- ✅ `03_TypeScript_Questions.md` - Type system, generics
+- ✅ `04_System_Design_Questions.md` - Design large-scale apps
 - `05_Coding_Challenges.md` - Algorithm problems, solutions
 - `06_Behavioral_Questions.md` - STAR method, leadership
 
