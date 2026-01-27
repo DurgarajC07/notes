@@ -39,10 +39,10 @@
 - ✅ `02_Hoisting_TDZ.md` - Temporal Dead Zone, var vs let vs const
 - ✅ `03_Closures_Scope_Chain.md` - Lexical scoping, memory implications
 - ✅ `04_Prototypal_Inheritance.md` - Prototype chain, **proto**, Object.create
-- `05_This_Binding.md` - Implicit, explicit, arrow functions
+- ✅ `05_This_Binding.md` - Implicit, explicit, arrow functions
 - ✅ `06_Event_Loop_Microtasks.md` - Call stack, task queue, microtask queue
-- `07_Coercion_Type_Conversion.md` - == vs ===, implicit coercion
-- `README.md` - Section overview and learning path
+- ✅ `07_Coercion_Type_Conversion.md` - == vs ===, implicit coercion
+- ✅ `README.md` - Section overview and learning path
 
 #### `02_Advanced_JavaScript/`
 
@@ -91,15 +91,15 @@
 
 #### `07_Browser_Internals/`
 
-- `01_Rendering_Engine.md` - WebKit, Blink, Gecko architecture
+- ✅ `01_Rendering_Engine.md` - WebKit, Blink, Gecko architecture
 - ✅ `02_Critical_Rendering_Path.md` - DOM, CSSOM, render tree
-- `03_Compositor_Thread.md` - Layer promotion, GPU acceleration
-- `04_Main_Thread_Work.md` - Long tasks, blocking, yielding
-- `05_Browser_Process_Model.md` - Site isolation, process per tab
+- ✅ `03_Compositor_Thread.md` - Layer promotion, GPU acceleration
+- ✅ `04_Main_Thread_Work.md` - Long tasks, blocking, yielding
+- ✅ `05_Browser_Process_Model.md` - Site isolation, process per tab
 
 #### `08_DOM_Rendering/`
 
-- `01_Reflow_Repaint.md` - Layout, paint, composite
+- ✅ `01_Reflow_Repaint.md` - Layout, paint, composite
 - ✅ `02_Layout_Thrashing.md` - Forced synchronous layout, FastDOM
 - ✅ `03_CSS_Triggers.md` - Layout, paint, composite triggers
 - ✅ `04_Virtual_Scrolling.md` - Windowing, infinite scroll
@@ -128,12 +128,12 @@
 
 #### `11_TypeScript_Fundamentals/`
 
-- `01_Type_System.md` - Structural typing, type inference
-- `02_Basic_Types.md` - Primitives, arrays, tuples, enums
-- `03_Interfaces_Types.md` - Interface vs type alias
-- `04_Generics.md` - Constraints, default types
-- `05_Type_Guards.md` - typeof, instanceof, custom guards
-- `06_Union_Intersection.md` - Union types, intersection types
+- ✅ `01_Type_System.md` - Structural typing, type inference
+- ✅ `02_Basic_Types.md` - Primitives, arrays, tuples, enums
+- ✅ `03_Interfaces_Types.md` - Interface vs type alias
+- ✅ `04_Generics.md` - Constraints, default types
+- ✅ `05_Type_Guards.md` - typeof, instanceof, custom guards
+- ✅ `06_Union_Intersection.md` - Union types, intersection types
 
 #### `12_Advanced_TypeScript/`
 
@@ -153,7 +153,7 @@
 
 #### `14_TS_with_React/`
 
-- `01_Component_Types.md` - FC, PropsWithChildren, generics
+- ✅ `01_Component_Types.md` - FC, PropsWithChildren, generics
 - `02_Hooks_Typing.md` - useState, useRef, custom hooks
 - `03_Event_Handlers.md` - SyntheticEvent, event types
 - `04_Children_Props.md` - ReactNode, ReactElement
@@ -172,16 +172,16 @@
 
 #### `16_React_Core/`
 
-- `01_JSX_Transform.md` - JSX compilation, createElement
-- `02_Virtual_DOM.md` - Reconciliation, diffing algorithm
-- `03_Component_Lifecycle.md` - Mount, update, unmount
-- `04_Controlled_Uncontrolled.md` - Form handling patterns
-- `05_Composition_Patterns.md` - Children, render props
+- ✅ `01_JSX_Transform.md` - JSX compilation, createElement
+- ✅ `02_Virtual_DOM.md` - Reconciliation, diffing algorithm
+- ✅ `03_Component_Lifecycle.md` - Mount, update, unmount
+- ✅ `04_Controlled_Uncontrolled.md` - Form handling patterns
+- ✅ `05_Composition_Patterns.md` - Children, render props
 
 #### `17_React_Internals/`
 
 - ✅ `01_Fiber_Architecture.md` - Reconciliation, priority, lanes
-- `02_Reconciliation_Algorithm.md` - Keys, diffing heuristics
+- ✅ `02_Reconciliation_Algorithm.md` - Keys, diffing heuristics
 - `03_Scheduler.md` - Time slicing, cooperative scheduling
 - `04_Render_Commit_Phases.md` - Async render, sync commit
 - `05_Priority_Lanes.md` - Update prioritization
