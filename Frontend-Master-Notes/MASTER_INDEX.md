@@ -138,14 +138,14 @@
 #### `12_Advanced_TypeScript/`
 
 - ✅ `01_Conditional_Mapped_Types.md` - Type transformations, utility types
-- `02_Template_Literal_Types.md` - String manipulation at type level
-- `03_Recursive_Types.md` - Deep partial, deep readonly
-- `04_Branded_Types.md` - Nominal typing in structural system
-- `05_Type_Level_Programming.md` - Advanced patterns
+- ✅ `02_Template_Literal_Types.md` - String manipulation at type level
+- ✅ `03_Recursive_Types.md` - Deep partial, deep readonly
+- ✅ `04_Branded_Types.md` - Nominal typing in structural system
+- ✅ `05_Type_Level_Programming.md` - Advanced patterns
 
 #### `13_Type_System_Design/`
 
-- `01_Discriminated_Unions.md` - Tagged unions, exhaustiveness
+- ✅ `01_Discriminated_Unions.md` - Tagged unions, exhaustiveness
 - `02_Builder_Pattern.md` - Fluent APIs with types
 - `03_State_Machines.md` - Type-safe state transitions
 - `04_Branded_IDs.md` - Prevent ID confusion
@@ -182,9 +182,9 @@
 
 - ✅ `01_Fiber_Architecture.md` - Reconciliation, priority, lanes
 - ✅ `02_Reconciliation_Algorithm.md` - Keys, diffing heuristics
-- `03_Scheduler.md` - Time slicing, cooperative scheduling
-- `04_Render_Commit_Phases.md` - Async render, sync commit
-- `05_Priority_Lanes.md` - Update prioritization
+- ✅ `03_Scheduler.md` - Time slicing, cooperative scheduling
+- ✅ `04_Render_Commit_Phases.md` - Async render, sync commit
+- ✅ `05_Priority_Lanes.md` - Update prioritization
 
 #### `18_Hooks_Deep_Dive/`
 
@@ -198,27 +198,27 @@
 #### `19_State_Management/`
 
 - ✅ `01_Context_API.md` - Provider, Consumer, performance
-- `02_Redux_Toolkit.md` - Slices, thunks, RTK Query
-- `03_Zustand.md` - Simple state management
+- ✅ `02_Redux_Toolkit.md` - Slices, thunks, RTK Query
+- ✅ `03_Zustand.md` - Simple state management
 - `04_Jotai_Recoil.md` - Atomic state management
 - `05_State_Machines.md` - XState, finite state machines
 - `06_Server_State.md` - React Query, SWR, Apollo
 
 #### `20_React_Rendering_Optimization/`
 
-- `01_Memoization.md` - React.memo, useMemo, useCallback
-- `02_Code_Splitting.md` - React.lazy, Suspense, dynamic imports
-- `03_Virtualization.md` - react-window, react-virtualized
-- `04_Batching.md` - Automatic batching, flushSync
-- `05_Concurrent_Features.md` - Transitions, deferred values
+- ✅ `01_Memoization.md` - React.memo, useMemo, useCallback
+- ✅ `02_Code_Splitting.md` - React.lazy, Suspense, dynamic imports
+- ✅ `03_Virtual_Scrolling.md` - react-window, react-virtualized
+- ✅ `04_Web_Workers.md` - Background processing
+- ✅ `05_Performance_Profiling.md` - React DevTools, measurement
 
 #### `21_React_Security/`
 
-- `01_XSS_Prevention.md` - dangerouslySetInnerHTML, sanitization
-- `02_CSRF_Protection.md` - Tokens, SameSite cookies
-- `03_Dependency_Security.md` - npm audit, Snyk
+- ✅ `01_XSS_Prevention.md` - dangerouslySetInnerHTML, sanitization
+- ✅ `02_CSRF_Protection.md` - Tokens, SameSite cookies
+- ✅ `03_Authentication.md` - JWT, OAuth, secure storage
 - `04_Secure_Communication.md` - HTTPS, CSP, CORS
-- `05_Authentication.md` - JWT, OAuth, secure storage
+- `05_Dependency_Security.md` - npm audit, Snyk
 
 #### `22_React_Architecture/`
 
