@@ -146,15 +146,15 @@
 #### `13_Type_System_Design/`
 
 - ✅ `01_Discriminated_Unions.md` - Tagged unions, exhaustiveness
-- `02_Builder_Pattern.md` - Fluent APIs with types
-- `03_State_Machines.md` - Type-safe state transitions
-- `04_Branded_IDs.md` - Prevent ID confusion
-- `05_Opaque_Types.md` - Information hiding
+- ✅ `02_Builder_Pattern.md` - Fluent APIs with types
+- ✅ `03_State_Machines.md` - Type-safe state transitions
+- ✅ `04_Branded_IDs.md` - Prevent ID confusion
+- ✅ `05_Opaque_Types.md` - Information hiding
 
 #### `14_TS_with_React/`
 
 - ✅ `01_Component_Types.md` - FC, PropsWithChildren, generics
-- `02_Hooks_Typing.md` - useState, useRef, custom hooks
+- ✅ `02_Hooks_Typing.md` - useState, useRef, custom hooks
 - `03_Event_Handlers.md` - SyntheticEvent, event types
 - `04_Children_Props.md` - ReactNode, ReactElement
 - `05_HOC_Typing.md` - Higher-order components
