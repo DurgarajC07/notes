@@ -232,9 +232,9 @@
 
 - ✅ `01_Testing_Library.md` - Queries, user events, async
 - ✅ `02_Unit_Testing.md` - Jest, component testing
-- `03_Integration_Testing.md` - Multi-component testing
-- `04_E2E_Testing.md` - Playwright, Cypress
-- `05_Mocking.md` - Mock Service Worker, test doubles
+- ✅ `03_Integration_Testing.md` - Multi-component testing
+- ✅ `04_E2E_Testing.md` - Playwright, Cypress
+- ✅ `05_Mocking.md` - Mock Service Worker, test doubles
 
 ---
 
