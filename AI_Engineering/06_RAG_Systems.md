@@ -1477,6 +1477,685 @@ Result: Bob
 
 ---
 
+## Advanced RAG Patterns & Optimization
+
+### Query Understanding and Transformation
+
+**Problem:** User queries are often vague, ambiguous, or poorly phrased.
+
+**Solution:** Transform query before retrieval for better results.
+
+---
+
+#### Query Classification
+
+```python
+class QueryClassifier:
+    """
+    Classify query type to route to appropriate retrieval strategy
+    """
+    def classify(self, query):
+        prompt = f"""
+        Classify this query into one of the following categories:
+        - FACTUAL: Looking for specific facts
+        - EXPLORATORY: Open-ended research question
+        - PROCEDURAL: How-to or step-by-step instructions
+        - COMPARISON: Comparing multiple things
+        - TROUBLESHOOTING: Problem-solving
+
+        Query: {query}
+        Category:
+        """
+        return llm.generate(prompt)
+
+# Usage
+query = "How do I reset my password?"
+category = classifier.classify(query)  # PROCEDURAL
+
+# Route based on category
+if category == "PROCEDURAL":
+    # Use chunking that preserves step sequences
+    chunks = semantic_chunking_with_steps(docs)
+elif category == "COMPARISON":
+    # Retrieve multiple relevant docs for comparison
+    chunks = multi_doc_retrieval(query)
+```
+
+---
+
+#### Query Expansion with LLMs
+
+```python
+def expand_query(query):
+    """
+    Generate multiple query variations to improve recall
+    """
+    prompt = f"""
+    Given this user query, generate 3 semantically similar queries
+    that could help find relevant information.
+
+    Original: {query}
+
+    Variations:
+    1.
+    2.
+    3.
+    """
+    variations = llm.generate(prompt).split("\n")
+    return [query] + variations
+
+# Example
+original = "How to improve model accuracy?"
+expanded = expand_query(original)
+# [
+#   "How to improve model accuracy?",
+#   "What techniques increase machine learning model performance?",
+#   "Methods to reduce model error rate",
+#   "Best practices for improving prediction accuracy"
+# ]
+
+# Retrieve with all variations
+all_results = []
+for q in expanded:
+    results = vector_search(q, top_k=20)
+    all_results.extend(results)
+
+# Deduplicate and rank
+final_results = deduplicate_and_rank(all_results, top_k=10)
+```
+
+---
+
+#### Query Decomposition
+
+**For complex multi-part questions:**
+
+```python
+def decompose_query(complex_query):
+    """
+    Break complex query into simpler sub-questions
+    """
+    prompt = f"""
+    Break this complex question into simpler sub-questions.
+
+    Complex question: {complex_query}
+
+    Sub-questions:
+    1.
+    2.
+    3.
+    """
+    return llm.generate(prompt).split("\n")
+
+# Example
+complex_q = "Compare the performance of GPT-4 and Claude 3 on coding tasks and explain which is better for production use"
+
+sub_questions = decompose_query(complex_q)
+# [
+#   "What is GPT-4's performance on coding tasks?",
+#   "What is Claude 3's performance on coding tasks?",
+#   "What are the criteria for production use of LLMs?"
+# ]
+
+# Retrieve for each sub-question
+sub_contexts = []
+for sub_q in sub_questions:
+    context = retrieve(sub_q, top_k=5)
+    sub_contexts.append((sub_q, context))
+
+# Synthesize final answer
+final_answer = synthesize_answer(complex_q, sub_contexts)
+```
+
+---
+
+### Advanced Chunking Strategies
+
+#### Semantic Chunking with Embeddings
+
+```python
+def semantic_chunking(text, max_chunk_size=512, similarity_threshold=0.75):
+    """
+    Chunk based on semantic similarity between sentences
+    """
+    sentences = split_into_sentences(text)
+    embeddings = [embed(s) for s in sentences]
+
+    chunks = []
+    current_chunk = [sentences[0]]
+    current_chunk_embedding = embeddings[0]
+
+    for i in range(1, len(sentences)):
+        # Compute similarity with current chunk
+        similarity = cosine_similarity(current_chunk_embedding, embeddings[i])
+
+        # If similar and not too long, add to current chunk
+        if similarity > similarity_threshold and len(" ".join(current_chunk)) < max_chunk_size:
+            current_chunk.append(sentences[i])
+            # Update chunk embedding (running average)
+            current_chunk_embedding = np.mean([current_chunk_embedding, embeddings[i]], axis=0)
+        else:
+            # Start new chunk
+            chunks.append(" ".join(current_chunk))
+            current_chunk = [sentences[i]]
+            current_chunk_embedding = embeddings[i]
+
+    # Add last chunk
+    chunks.append(" ".join(current_chunk))
+
+    return chunks
+```
+
+---
+
+#### Hierarchical Chunking
+
+```python
+class HierarchicalChunker:
+    """
+    Create multi-level chunks: Document → Section → Paragraph
+    """
+    def chunk_document(self, document):
+        # Level 1: Document summary
+        doc_summary = summarize(document)
+        doc_embedding = embed(doc_summary)
+
+        # Level 2: Sections
+        sections = split_into_sections(document)
+        section_chunks = []
+
+        for section in sections:
+            section_summary = summarize(section)
+            section_embedding = embed(section_summary)
+
+            # Level 3: Paragraphs
+            paragraphs = split_into_paragraphs(section)
+            para_chunks = []
+
+            for para in paragraphs:
+                para_embedding = embed(para)
+                para_chunks.append({
+                    "text": para,
+                    "embedding": para_embedding,
+                    "section": section_summary,
+                    "document": doc_summary
+                })
+
+            section_chunks.append({
+                "summary": section_summary,
+                "embedding": section_embedding,
+                "paragraphs": para_chunks
+            })
+
+        return {
+            "summary": doc_summary,
+            "embedding": doc_embedding,
+            "sections": section_chunks
+        }
+
+    def hierarchical_retrieval(self, query, top_k=5):
+        """
+        Two-stage retrieval: First find relevant sections, then paragraphs
+        """
+        query_embedding = embed(query)
+
+        # Stage 1: Find relevant sections
+        section_scores = []
+        for doc in self.documents:
+            for section in doc["sections"]:
+                score = cosine_similarity(query_embedding, section["embedding"])
+                section_scores.append((score, section))
+
+        top_sections = sorted(section_scores, key=lambda x: x[0], reverse=True)[:10]
+
+        # Stage 2: Find relevant paragraphs within top sections
+        para_scores = []
+        for score, section in top_sections:
+            for para in section["paragraphs"]:
+                para_score = cosine_similarity(query_embedding, para["embedding"])
+                para_scores.append((para_score, para))
+
+        top_paras = sorted(para_scores, key=lambda x: x[0], reverse=True)[:top_k]
+
+        return [para["text"] for score, para in top_paras]
+```
+
+---
+
+### Re-ranking Models: Deep Dive
+
+#### Cross-Encoder Re-ranking
+
+```python
+from sentence_transformers import CrossEncoder
+
+class Reranker:
+    def __init__(self, model_name="cross-encoder/ms-marco-MiniLM-L-6-v2"):
+        """
+        Load cross-encoder model for re-ranking
+        """
+        self.model = CrossEncoder(model_name)
+
+    def rerank(self, query, candidates, top_k=5):
+        """
+        Rerank candidates using cross-encoder
+
+        Args:
+            query: User query string
+            candidates: List of candidate documents
+            top_k: Number of top results to return
+
+        Returns:
+            List of (score, document) tuples
+        """
+        # Create query-document pairs
+        pairs = [(query, doc) for doc in candidates]
+
+        # Score all pairs
+        scores = self.model.predict(pairs)
+
+        # Sort by score
+        ranked = sorted(zip(scores, candidates), key=lambda x: x[0], reverse=True)
+
+        return ranked[:top_k]
+
+# Usage in RAG pipeline
+def rag_with_reranking(query, top_k_retrieve=100, top_k_final=5):
+    # Stage 1: Fast vector search (high recall)
+    candidates = vector_search(query, top_k=top_k_retrieve)
+
+    # Stage 2: Re-rank with cross-encoder (high precision)
+    reranker = Reranker()
+    reranked = reranker.rerank(query, candidates, top_k=top_k_final)
+
+    # Stage 3: Generate answer
+    context = "\n\n".join([doc for score, doc in reranked])
+    answer = llm.generate(f"Context: {context}\n\nQuestion: {query}\n\nAnswer:")
+
+    return answer
+
+# Performance comparison:
+# Without reranking: ~65% relevant docs in top-5
+# With reranking: ~85% relevant docs in top-5
+# Cost: +50ms latency, +$0.001 per query
+```
+
+---
+
+#### LLM-as-Reranker
+
+```python
+def llm_rerank(query, candidates, top_k=5):
+    """
+    Use LLM to score and rerank candidates
+    """
+    scores = []
+
+    for doc in candidates:
+        prompt = f"""
+        Rate the relevance of this document to the query on a scale of 0-10.
+
+        Query: {query}
+
+        Document: {doc[:500]}...
+
+        Relevance score (0-10):
+        """
+        score = float(llm.generate(prompt, max_tokens=5))
+        scores.append((score, doc))
+
+    # Sort by score
+    ranked = sorted(scores, key=lambda x: x[0], reverse=True)
+
+    return ranked[:top_k]
+
+# Trade-offs:
+# Pros: Very accurate, understands nuance
+# Cons: Expensive ($0.01-0.05 per query), slow (2-5s)
+# Use case: High-value queries where accuracy is critical
+```
+
+---
+
+### Hybrid Search Implementation
+
+```python
+class HybridSearch:
+    def __init__(self, vector_db, bm25_index):
+        self.vector_db = vector_db
+        self.bm25_index = bm25_index
+
+    def hybrid_search(self, query, top_k=10, alpha=0.5):
+        """
+        Combine vector search and BM25
+
+        Args:
+            query: Search query
+            top_k: Number of results
+            alpha: Weight for vector search (1-alpha for BM25)
+                   0.0 = pure BM25, 1.0 = pure vector
+
+        Returns:
+            List of ranked documents
+        """
+        # Vector search
+        vector_results = self.vector_db.search(query, top_k=top_k*2)
+        vector_scores = {doc_id: score for doc_id, score in vector_results}
+
+        # BM25 search
+        bm25_results = self.bm25_index.search(query, top_k=top_k*2)
+        bm25_scores = {doc_id: score for doc_id, score in bm25_results}
+
+        # Normalize scores to [0, 1]
+        vector_scores = normalize_scores(vector_scores)
+        bm25_scores = normalize_scores(bm25_scores)
+
+        # Combine scores
+        all_doc_ids = set(vector_scores.keys()) | set(bm25_scores.keys())
+        combined_scores = {}
+
+        for doc_id in all_doc_ids:
+            v_score = vector_scores.get(doc_id, 0.0)
+            b_score = bm25_scores.get(doc_id, 0.0)
+            combined_scores[doc_id] = alpha * v_score + (1 - alpha) * b_score
+
+        # Rank by combined score
+        ranked = sorted(combined_scores.items(), key=lambda x: x[1], reverse=True)
+
+        return ranked[:top_k]
+
+def normalize_scores(scores):
+    """Min-max normalization"""
+    if not scores:
+        return {}
+    min_score = min(scores.values())
+    max_score = max(scores.values())
+    if max_score == min_score:
+        return {k: 1.0 for k in scores}
+    return {
+        k: (v - min_score) / (max_score - min_score)
+        for k, v in scores.items()
+    }
+
+# Example usage
+hybrid = HybridSearch(vector_db, bm25_index)
+
+# Query with specific term (favor BM25)
+results1 = hybrid.hybrid_search("product SKU-12345", alpha=0.3)  # 70% BM25
+
+# Semantic query (favor vector)
+results2 = hybrid.hybrid_search("How to improve customer satisfaction?", alpha=0.8)  # 80% vector
+
+# Balanced
+results3 = hybrid.hybrid_search("company policy on refunds", alpha=0.5)  # 50/50
+```
+
+---
+
+### RAG Evaluation Framework
+
+```python
+class RAGEvaluator:
+    """
+    Comprehensive RAG evaluation metrics
+    """
+    def __init__(self, llm):
+        self.llm = llm
+
+    def evaluate_retrieval(self, query, retrieved_docs, ground_truth_docs):
+        """
+        Evaluate retrieval quality
+        """
+        # Precision: How many retrieved docs are relevant?
+        precision = len(set(retrieved_docs) & set(ground_truth_docs)) / len(retrieved_docs)
+
+        # Recall: How many relevant docs were retrieved?
+        recall = len(set(retrieved_docs) & set(ground_truth_docs)) / len(ground_truth_docs)
+
+        # F1 score
+        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+
+        # MRR (Mean Reciprocal Rank)
+        for i, doc in enumerate(retrieved_docs):
+            if doc in ground_truth_docs:
+                mrr = 1 / (i + 1)
+                break
+        else:
+            mrr = 0
+
+        return {
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "mrr": mrr
+        }
+
+    def evaluate_answer_quality(self, query, answer, ground_truth_answer):
+        """
+        Evaluate generated answer quality using LLM
+        """
+        # 1. Faithfulness: Is answer supported by retrieved context?
+        faithfulness_prompt = f"""
+        Rate how well this answer is supported by the context (0-10).
+
+        Context: {context}
+        Answer: {answer}
+
+        Score (0-10):
+        """
+        faithfulness = float(self.llm.generate(faithfulness_prompt, max_tokens=5))
+
+        # 2. Relevance: Does answer address the question?
+        relevance_prompt = f"""
+        Rate how well this answer addresses the question (0-10).
+
+        Question: {query}
+        Answer: {answer}
+
+        Score (0-10):
+        """
+        relevance = float(self.llm.generate(relevance_prompt, max_tokens=5))
+
+        # 3. Correctness: Compare to ground truth
+        correctness_prompt = f"""
+        Compare this answer to the ground truth. Rate accuracy (0-10).
+
+        Ground truth: {ground_truth_answer}
+        Generated answer: {answer}
+
+        Score (0-10):
+        """
+        correctness = float(self.llm.generate(correctness_prompt, max_tokens=5))
+
+        return {
+            "faithfulness": faithfulness,
+            "relevance": relevance,
+            "correctness": correctness,
+            "average": (faithfulness + relevance + correctness) / 3
+        }
+
+    def evaluate_end_to_end(self, test_cases):
+        """
+        Evaluate complete RAG pipeline on test set
+        """
+        results = []
+
+        for case in test_cases:
+            query = case["query"]
+            ground_truth_docs = case["relevant_docs"]
+            ground_truth_answer = case["answer"]
+
+            # Run RAG pipeline
+            retrieved_docs = rag_retrieve(query)
+            generated_answer = rag_generate(query, retrieved_docs)
+
+            # Evaluate retrieval
+            retrieval_metrics = self.evaluate_retrieval(
+                query, retrieved_docs, ground_truth_docs
+            )
+
+            # Evaluate answer
+            answer_metrics = self.evaluate_answer_quality(
+                query, generated_answer, ground_truth_answer
+            )
+
+            results.append({
+                "query": query,
+                "retrieval": retrieval_metrics,
+                "answer": answer_metrics
+            })
+
+        # Aggregate metrics
+        avg_precision = np.mean([r["retrieval"]["precision"] for r in results])
+        avg_recall = np.mean([r["retrieval"]["recall"] for r in results])
+        avg_answer_quality = np.mean([r["answer"]["average"] for r in results])
+
+        return {
+            "avg_precision": avg_precision,
+            "avg_recall": avg_recall,
+            "avg_f1": 2 * (avg_precision * avg_recall) / (avg_precision + avg_recall),
+            "avg_answer_quality": avg_answer_quality,
+            "detailed_results": results
+        }
+
+# Usage
+evaluator = RAGEvaluator(llm)
+
+test_cases = [
+    {
+        "query": "What is the refund policy?",
+        "relevant_docs": ["doc1", "doc5"],
+        "answer": "Refunds are available within 30 days..."
+    },
+    # ... more test cases
+]
+
+evaluation = evaluator.evaluate_end_to_end(test_cases)
+print(f"Precision: {evaluation['avg_precision']:.2f}")
+print(f"Recall: {evaluation['avg_recall']:.2f}")
+print(f"Answer Quality: {evaluation['avg_answer_quality']:.2f}")
+```
+
+---
+
+### Production RAG Optimization
+
+#### Caching Strategy
+
+```python
+class RAGCache:
+    """
+    Multi-level caching for RAG pipeline
+    """
+    def __init__(self, redis_client):
+        self.redis = redis_client
+        self.query_cache = {}  # In-memory cache
+        self.embedding_cache = {}
+
+    def get_cached_answer(self, query):
+        """
+        Check if we've answered this exact query before
+        """
+        # Level 1: In-memory (fastest)
+        if query in self.query_cache:
+            return self.query_cache[query]
+
+        # Level 2: Redis (fast)
+        cached = self.redis.get(f"answer:{query}")
+        if cached:
+            answer = json.loads(cached)
+            self.query_cache[query] = answer  # Populate L1 cache
+            return answer
+
+        return None
+
+    def cache_answer(self, query, answer, ttl=3600):
+        """
+        Cache answer at multiple levels
+        """
+        # L1: In-memory
+        self.query_cache[query] = answer
+
+        # L2: Redis with TTL
+        self.redis.setex(
+            f"answer:{query}",
+            ttl,
+            json.dumps(answer)
+        )
+
+    def get_similar_cached_queries(self, query_embedding, threshold=0.95):
+        """
+        Semantic cache: Find similar queries we've answered
+        """
+        for cached_query, cached_embedding in self.embedding_cache.items():
+            similarity = cosine_similarity(query_embedding, cached_embedding)
+            if similarity > threshold:
+                return self.get_cached_answer(cached_query)
+
+        return None
+
+# Usage in RAG pipeline
+cache = RAGCache(redis_client)
+
+def rag_with_cache(query):
+    # Check exact match cache
+    cached_answer = cache.get_cached_answer(query)
+    if cached_answer:
+        return cached_answer  # Cache hit!
+
+    # Check semantic cache
+    query_embedding = embed(query)
+    similar_answer = cache.get_similar_cached_queries(query_embedding)
+    if similar_answer:
+        return similar_answer
+
+    # Cache miss: Run full RAG pipeline
+    context = retrieve(query)
+    answer = generate(query, context)
+
+    # Cache for future
+    cache.cache_answer(query, answer)
+
+    return answer
+```
+
+---
+
+#### Batch Processing for Efficiency
+
+```python
+def batch_rag(queries, batch_size=32):
+    """
+    Process multiple queries efficiently
+    """
+    all_answers = []
+
+    for i in range(0, len(queries), batch_size):
+        batch = queries[i:i+batch_size]
+
+        # Batch embedding (much faster than one-by-one)
+        embeddings = embed_batch(batch)
+
+        # Parallel retrieval
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            contexts = list(executor.map(retrieve, embeddings))
+
+        # Batch LLM generation
+        prompts = [
+            f"Context: {ctx}\n\nQuestion: {q}\n\nAnswer:"
+            for q, ctx in zip(batch, contexts)
+        ]
+        answers = llm.generate_batch(prompts)
+
+        all_answers.extend(answers)
+
+    return all_answers
+
+# Speedup: 5-10x faster than sequential processing
+```
+
+---
+
 ## Production RAG Pitfalls
 
 ### Common Issues

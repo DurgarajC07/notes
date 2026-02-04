@@ -885,6 +885,667 @@ bias[i,j] = -m * |i - j|  # Linear penalty for distance
 
 ---
 
+## Transformer Mathematics: Complete Walkthrough
+
+### Step-by-Step Attention Computation
+
+**Let's compute attention for a simple example:**
+
+**Input sentence:** "I love AI"
+
+**Step 1: Tokenization & Embedding**
+
+```
+Tokens: ["I", "love", "AI"]
+Token IDs: [100, 523, 892]
+
+Embedding lookup (assume d_model=4 for simplicity):
+x_0 = [0.1, 0.2, 0.3, 0.4]  # "I"
+x_1 = [0.5, 0.6, 0.7, 0.8]  # "love"
+x_2 = [0.9, 1.0, 1.1, 1.2]  # "AI"
+
+X = [[0.1, 0.2, 0.3, 0.4],
+     [0.5, 0.6, 0.7, 0.8],
+     [0.9, 1.0, 1.1, 1.2]]  # Shape: (3, 4)
+```
+
+**Step 2: Create Q, K, V matrices**
+
+```python
+# Simplified weight matrices (normally initialized randomly)
+W_Q = [[1, 0, 1, 0],
+       [0, 1, 0, 1],
+       [1, 1, 0, 0],
+       [0, 0, 1, 1]]  # Shape: (4, 4)
+
+W_K = W_Q  # For simplicity, same weights
+W_V = W_Q
+
+# Compute Q, K, V
+Q = X @ W_Q  # Shape: (3, 4)
+K = X @ W_K  # Shape: (3, 4)
+V = X @ W_V  # Shape: (3, 4)
+
+# Example Q matrix:
+Q = [[0.4, 0.6, 0.4, 0.6],
+     [1.2, 1.4, 1.2, 1.4],
+     [2.0, 2.2, 2.0, 2.2]]
+```
+
+**Step 3: Compute attention scores**
+
+```python
+# Scaled dot-product
+d_k = 4
+scores = (Q @ K.T) / sqrt(d_k)  # Shape: (3, 3)
+
+# scores[i,j] = how much token i attends to token j
+scores = [[0.65, 1.95, 3.25],    # "I" attending to ["I", "love", "AI"]
+          [1.95, 5.85, 9.75],    # "love" attending to ["I", "love", "AI"]
+          [3.25, 9.75, 16.25]]   # "AI" attending to ["I", "love", "AI"]
+```
+
+**Step 4: Apply softmax**
+
+```python
+import numpy as np
+
+attention_weights = np.softmax(scores, axis=-1)
+
+# attention_weights (after softmax):
+[[0.01, 0.11, 0.88],   # "I" mostly attends to "AI"
+ [0.00, 0.01, 0.99],   # "love" mostly attends to "AI"
+ [0.00, 0.00, 1.00]]   # "AI" only attends to itself
+```
+
+**Step 5: Weighted sum of values**
+
+```python
+output = attention_weights @ V  # Shape: (3, 4)
+
+# Each output token is weighted combination of all V vectors
+output[0] = 0.01*V[0] + 0.11*V[1] + 0.88*V[2]
+```
+
+**Complete code:**
+
+```python
+import torch
+import torch.nn.functional as F
+
+def attention(Q, K, V, mask=None):
+    """
+    Args:
+        Q: Queries (batch, seq_len, d_k)
+        K: Keys (batch, seq_len, d_k)
+        V: Values (batch, seq_len, d_v)
+        mask: Optional mask (batch, seq_len, seq_len)
+    Returns:
+        output: (batch, seq_len, d_v)
+        attention_weights: (batch, seq_len, seq_len)
+    """
+    d_k = Q.size(-1)
+
+    # Compute scores: (batch, seq_len, seq_len)
+    scores = torch.matmul(Q, K.transpose(-2, -1)) / torch.sqrt(torch.tensor(d_k, dtype=torch.float32))
+
+    # Apply mask (for causal/padding)
+    if mask is not None:
+        scores = scores.masked_fill(mask == 0, -1e9)
+
+    # Softmax
+    attention_weights = F.softmax(scores, dim=-1)
+
+    # Weighted sum
+    output = torch.matmul(attention_weights, V)
+
+    return output, attention_weights
+
+# Example usage
+batch_size, seq_len, d_model = 2, 5, 64
+Q = torch.randn(batch_size, seq_len, d_model)
+K = torch.randn(batch_size, seq_len, d_model)
+V = torch.randn(batch_size, seq_len, d_model)
+
+output, weights = attention(Q, K, V)
+print(f"Output shape: {output.shape}")  # (2, 5, 64)
+print(f"Attention weights shape: {weights.shape}")  # (2, 5, 5)
+```
+
+---
+
+### Multi-Head Attention Implementation
+
+**Mathematical formulation:**
+
+$$
+\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, ..., \text{head}_h)W^O
+$$
+
+where:
+
+$$
+\text{head}_i = \text{Attention}(QW_i^Q, KW_i^K, VW_i^V)
+$$
+
+**Complete PyTorch implementation:**
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, d_model, num_heads, dropout=0.1):
+        """
+        Args:
+            d_model: Model dimension (e.g., 512, 768)
+            num_heads: Number of attention heads (e.g., 8, 12)
+            dropout: Dropout probability
+        """
+        super().__init__()
+        assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
+
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.d_k = d_model // num_heads  # Dimension per head
+
+        # Linear projections
+        self.W_q = nn.Linear(d_model, d_model)
+        self.W_k = nn.Linear(d_model, d_model)
+        self.W_v = nn.Linear(d_model, d_model)
+        self.W_o = nn.Linear(d_model, d_model)
+
+        self.dropout = nn.Dropout(dropout)
+
+    def split_heads(self, x):
+        """
+        Split last dimension into (num_heads, d_k)
+        Args:
+            x: (batch, seq_len, d_model)
+        Returns:
+            (batch, num_heads, seq_len, d_k)
+        """
+        batch_size, seq_len, d_model = x.size()
+        x = x.view(batch_size, seq_len, self.num_heads, self.d_k)
+        return x.transpose(1, 2)  # (batch, num_heads, seq_len, d_k)
+
+    def combine_heads(self, x):
+        """
+        Inverse of split_heads
+        Args:
+            x: (batch, num_heads, seq_len, d_k)
+        Returns:
+            (batch, seq_len, d_model)
+        """
+        batch_size, num_heads, seq_len, d_k = x.size()
+        x = x.transpose(1, 2)  # (batch, seq_len, num_heads, d_k)
+        return x.contiguous().view(batch_size, seq_len, self.d_model)
+
+    def forward(self, query, key, value, mask=None):
+        """
+        Args:
+            query: (batch, seq_len_q, d_model)
+            key: (batch, seq_len_k, d_model)
+            value: (batch, seq_len_v, d_model)
+            mask: (batch, 1, seq_len_q, seq_len_k) or (batch, 1, 1, seq_len_k)
+        Returns:
+            output: (batch, seq_len_q, d_model)
+            attention_weights: (batch, num_heads, seq_len_q, seq_len_k)
+        """
+        batch_size = query.size(0)
+
+        # Linear projections
+        Q = self.W_q(query)  # (batch, seq_len_q, d_model)
+        K = self.W_k(key)    # (batch, seq_len_k, d_model)
+        V = self.W_v(value)  # (batch, seq_len_v, d_model)
+
+        # Split into multiple heads
+        Q = self.split_heads(Q)  # (batch, num_heads, seq_len_q, d_k)
+        K = self.split_heads(K)  # (batch, num_heads, seq_len_k, d_k)
+        V = self.split_heads(V)  # (batch, num_heads, seq_len_v, d_k)
+
+        # Scaled dot-product attention
+        # scores: (batch, num_heads, seq_len_q, seq_len_k)
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.d_k)
+
+        # Apply mask
+        if mask is not None:
+            scores = scores.masked_fill(mask == 0, -1e9)
+
+        # Softmax and dropout
+        attention_weights = F.softmax(scores, dim=-1)
+        attention_weights = self.dropout(attention_weights)
+
+        # Apply attention to values
+        # context: (batch, num_heads, seq_len_q, d_k)
+        context = torch.matmul(attention_weights, V)
+
+        # Combine heads
+        context = self.combine_heads(context)  # (batch, seq_len_q, d_model)
+
+        # Final linear projection
+        output = self.W_o(context)
+
+        return output, attention_weights
+
+# Example usage
+d_model = 512
+num_heads = 8
+batch_size = 2
+seq_len = 10
+
+mha = MultiHeadAttention(d_model, num_heads)
+x = torch.randn(batch_size, seq_len, d_model)
+
+output, weights = mha(x, x, x)  # Self-attention
+print(f"Output shape: {output.shape}")  # (2, 10, 512)
+print(f"Attention weights shape: {weights.shape}")  # (2, 8, 10, 10)
+```
+
+---
+
+### KV Cache: Fast Autoregressive Generation
+
+**Problem:** Generating tokens is slow because we recompute attention for all previous tokens every time.
+
+**Without KV cache:**
+
+```python
+# Generate token by token (inefficient)
+for i in range(max_length):
+    # Recompute attention over ALL tokens (0 to i)
+    logits = model(input_ids[:, :i+1])  # Expensive!
+    next_token = logits[:, -1].argmax()
+    input_ids = torch.cat([input_ids, next_token.unsqueeze(-1)], dim=1)
+```
+
+**Time complexity:** O(n²) for generating n tokens
+
+**With KV cache:**
+
+```python
+# Cache Key and Value matrices
+past_key_values = None
+
+for i in range(max_length):
+    # Only process NEW token
+    logits, past_key_values = model(
+        input_ids[:, i:i+1],      # Only current token!
+        past_key_values=past_key_values  # Cached K,V from previous steps
+    )
+    next_token = logits[:, -1].argmax()
+    input_ids = torch.cat([input_ids, next_token.unsqueeze(-1)], dim=1)
+```
+
+**Time complexity:** O(n) for generating n tokens
+
+**Implementation:**
+
+```python
+class MultiHeadAttentionWithKVCache(nn.Module):
+    def __init__(self, d_model, num_heads):
+        super().__init__()
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.d_k = d_model // num_heads
+
+        self.W_q = nn.Linear(d_model, d_model)
+        self.W_k = nn.Linear(d_model, d_model)
+        self.W_v = nn.Linear(d_model, d_model)
+        self.W_o = nn.Linear(d_model, d_model)
+
+    def forward(self, query, key, value, past_kv=None, use_cache=False):
+        """
+        Args:
+            query: (batch, seq_len_q, d_model)
+            key: (batch, seq_len_k, d_model)
+            value: (batch, seq_len_v, d_model)
+            past_kv: Tuple of (past_key, past_value) or None
+                     past_key: (batch, num_heads, past_seq_len, d_k)
+                     past_value: (batch, num_heads, past_seq_len, d_k)
+            use_cache: Whether to return K,V for caching
+        Returns:
+            output: (batch, seq_len_q, d_model)
+            present_kv: Tuple of (K, V) if use_cache else None
+        """
+        # Project to Q, K, V
+        Q = self.W_q(query)
+        K = self.W_k(key)
+        V = self.W_v(value)
+
+        # Split heads
+        Q = self.split_heads(Q)  # (batch, num_heads, seq_len_q, d_k)
+        K = self.split_heads(K)  # (batch, num_heads, seq_len_k, d_k)
+        V = self.split_heads(V)  # (batch, num_heads, seq_len_v, d_k)
+
+        # Concatenate with past K,V if provided
+        if past_kv is not None:
+            past_key, past_value = past_kv
+            K = torch.cat([past_key, K], dim=2)  # Concatenate along sequence dimension
+            V = torch.cat([past_value, V], dim=2)
+
+        # Compute attention
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.d_k)
+        attention_weights = F.softmax(scores, dim=-1)
+        context = torch.matmul(attention_weights, V)
+
+        # Combine heads
+        context = self.combine_heads(context)
+        output = self.W_o(context)
+
+        # Return current K,V for next iteration
+        present_kv = (K, V) if use_cache else None
+
+        return output, present_kv
+
+    def split_heads(self, x):
+        batch_size, seq_len, _ = x.size()
+        x = x.view(batch_size, seq_len, self.num_heads, self.d_k)
+        return x.transpose(1, 2)
+
+    def combine_heads(self, x):
+        batch_size, _, seq_len, _ = x.size()
+        x = x.transpose(1, 2).contiguous()
+        return x.view(batch_size, seq_len, self.d_model)
+
+# Usage example: Efficient generation
+model = MultiHeadAttentionWithKVCache(d_model=512, num_heads=8)
+
+input_ids = torch.randint(0, 1000, (1, 1))  # Start with one token
+past_kv = None
+
+for i in range(20):  # Generate 20 tokens
+    # Only process the LAST token (not all previous)
+    x = embedding(input_ids[:, -1:])  # (1, 1, 512)
+
+    # Forward pass with KV cache
+    output, past_kv = model(x, x, x, past_kv=past_kv, use_cache=True)
+
+    # Sample next token
+    logits = output_head(output)  # (1, 1, vocab_size)
+    next_token = logits.argmax(dim=-1)
+
+    # Append to sequence
+    input_ids = torch.cat([input_ids, next_token], dim=1)
+
+print(f"Generated {input_ids.size(1)} tokens efficiently!")
+```
+
+**Memory savings:**
+
+```
+Without cache: Store all activations for all tokens
+  └─ Memory: O(n² * d_model) for n tokens
+
+With cache: Only store K,V matrices (reuse them)
+  └─ Memory: O(n * d_model * num_layers) for n tokens
+  └─ Speedup: ~10-50x for long sequences
+```
+
+**Real-world impact:**
+
+- GPT-4: Can generate 100 tokens/sec with KV cache vs 2-5 tokens/sec without
+- Production inference servers (vLLM, TGI) heavily rely on KV cache optimization
+
+---
+
+### Causal Masking for Decoder
+
+**Why needed:** Prevent decoder from "cheating" by looking at future tokens.
+
+**Causal mask:**
+
+```python
+def create_causal_mask(seq_len):
+    """
+    Create lower-triangular mask
+    Returns: (seq_len, seq_len) boolean tensor
+    """
+    mask = torch.tril(torch.ones(seq_len, seq_len))
+    return mask  # [[1, 0, 0],
+                 #  [1, 1, 0],
+                 #  [1, 1, 1]]
+
+# In attention computation:
+scores = scores.masked_fill(mask == 0, -1e9)
+# After softmax, masked positions become 0
+```
+
+**Visual representation:**
+
+```
+Token 0 (position 0): Can only attend to [token 0]
+Token 1 (position 1): Can only attend to [token 0, token 1]
+Token 2 (position 2): Can only attend to [token 0, token 1, token 2]
+...
+
+Attention matrix (after masking):
+       Q
+     0 1 2
+K  0 [✓ ✗ ✗]
+   1 [✓ ✓ ✗]
+   2 [✓ ✓ ✓]
+
+✓ = Allowed to attend
+✗ = Masked (cannot attend to future)
+```
+
+**Complete implementation:**
+
+```python
+def forward_with_causal_mask(self, x):
+    """
+    Args:
+        x: (batch, seq_len, d_model)
+    """
+    batch_size, seq_len, _ = x.size()
+
+    # Create causal mask
+    causal_mask = torch.tril(torch.ones(seq_len, seq_len, device=x.device))
+    causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # (1, 1, seq_len, seq_len)
+
+    # Self-attention with causal mask
+    output, _ = self.attention(x, x, x, mask=causal_mask)
+
+    return output
+```
+
+---
+
+### Memory and Compute Optimization
+
+**1. Flash Attention**
+
+**Problem:** Standard attention materializes full attention matrix (seq_len × seq_len).
+
+**Solution:** Compute attention in blocks without materializing full matrix.
+
+**Memory:** O(n) instead of O(n²)
+
+**Speed:** 2-4x faster
+
+```python
+# Standard attention: O(n²) memory
+scores = Q @ K.T  # Materialize (seq_len, seq_len) matrix ❌
+
+# Flash Attention: O(n) memory
+# Compute in tiles, accumulate results on-the-fly ✓
+from flash_attn import flash_attn_func
+
+output = flash_attn_func(Q, K, V)  # Never stores full attention matrix
+```
+
+**2. Gradient Checkpointing**
+
+**Trade compute for memory:**
+
+```python
+import torch.utils.checkpoint as checkpoint
+
+class TransformerLayer(nn.Module):
+    def forward(self, x):
+        # Without checkpointing: Store all activations (high memory)
+        # x = self.attention(x)
+        # x = self.ffn(x)
+
+        # With checkpointing: Recompute during backward (low memory)
+        x = checkpoint.checkpoint(self.attention, x, use_reentrant=False)
+        x = checkpoint.checkpoint(self.ffn, x, use_reentrant=False)
+        return x
+```
+
+**Impact:** Train 2-3x larger models on same GPU.
+
+**3. Mixed Precision (FP16/BF16)**
+
+```python
+from torch.cuda.amp import autocast, GradScaler
+
+model = TransformerModel()
+optimizer = torch.optim.AdamW(model.parameters())
+scaler = GradScaler()
+
+for batch in dataloader:
+    with autocast():  # Use FP16 for forward/backward
+        loss = model(batch)
+
+    scaler.scale(loss).backward()
+    scaler.step(optimizer)
+    scaler.update()
+```
+
+**Benefits:**
+
+- 2x faster training
+- 2x less memory
+- **BF16 preferred for LLMs** (better numerical stability)
+
+---
+
+### Transformer Block: Complete Implementation
+
+```python
+class TransformerBlock(nn.Module):
+    """
+    Complete transformer encoder/decoder block
+    """
+    def __init__(self, d_model, num_heads, d_ff, dropout=0.1, is_decoder=False):
+        super().__init__()
+
+        self.is_decoder = is_decoder
+
+        # Self-attention
+        self.self_attn = MultiHeadAttention(d_model, num_heads, dropout)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.dropout1 = nn.Dropout(dropout)
+
+        # Cross-attention (decoder only)
+        if is_decoder:
+            self.cross_attn = MultiHeadAttention(d_model, num_heads, dropout)
+            self.norm2 = nn.LayerNorm(d_model)
+            self.dropout2 = nn.Dropout(dropout)
+
+        # Feed-forward network
+        self.ffn = nn.Sequential(
+            nn.Linear(d_model, d_ff),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(d_ff, d_model),
+        )
+        self.norm3 = nn.LayerNorm(d_model)
+        self.dropout3 = nn.Dropout(dropout)
+
+    def forward(self, x, encoder_output=None, self_attn_mask=None, cross_attn_mask=None):
+        """
+        Args:
+            x: (batch, seq_len, d_model)
+            encoder_output: (batch, src_len, d_model) - for decoder cross-attention
+            self_attn_mask: Mask for self-attention
+            cross_attn_mask: Mask for cross-attention
+        """
+        # Self-attention with residual + norm (Pre-LN style)
+        residual = x
+        x = self.norm1(x)
+        x, _ = self.self_attn(x, x, x, mask=self_attn_mask)
+        x = self.dropout1(x)
+        x = residual + x
+
+        # Cross-attention (decoder only)
+        if self.is_decoder and encoder_output is not None:
+            residual = x
+            x = self.norm2(x)
+            x, _ = self.cross_attn(x, encoder_output, encoder_output, mask=cross_attn_mask)
+            x = self.dropout2(x)
+            x = residual + x
+
+        # Feed-forward with residual + norm
+        residual = x
+        x = self.norm3(x)
+        x = self.ffn(x)
+        x = self.dropout3(x)
+        x = residual + x
+
+        return x
+
+# Example: Build a 12-layer transformer
+class Transformer(nn.Module):
+    def __init__(self, vocab_size=50000, d_model=768, num_heads=12,
+                 num_layers=12, d_ff=3072, max_seq_len=2048, dropout=0.1):
+        super().__init__()
+
+        self.embedding = nn.Embedding(vocab_size, d_model)
+        self.pos_encoding = nn.Embedding(max_seq_len, d_model)
+
+        self.layers = nn.ModuleList([
+            TransformerBlock(d_model, num_heads, d_ff, dropout, is_decoder=True)
+            for _ in range(num_layers)
+        ])
+
+        self.ln_f = nn.LayerNorm(d_model)
+        self.lm_head = nn.Linear(d_model, vocab_size, bias=False)
+
+        # Weight tying (share embedding and output projection)
+        self.lm_head.weight = self.embedding.weight
+
+    def forward(self, input_ids, attention_mask=None):
+        batch_size, seq_len = input_ids.size()
+
+        # Token + positional embeddings
+        positions = torch.arange(seq_len, device=input_ids.device).unsqueeze(0)
+        x = self.embedding(input_ids) + self.pos_encoding(positions)
+
+        # Create causal mask
+        causal_mask = torch.tril(torch.ones(seq_len, seq_len, device=x.device))
+        causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)
+
+        # Stack transformer blocks
+        for layer in self.layers:
+            x = layer(x, self_attn_mask=causal_mask)
+
+        # Final layer norm and projection
+        x = self.ln_f(x)
+        logits = self.lm_head(x)
+
+        return logits
+
+# Instantiate GPT-2 sized model
+model = Transformer(
+    vocab_size=50257,
+    d_model=768,
+    num_heads=12,
+    num_layers=12,
+    d_ff=3072,
+    max_seq_len=1024
+)
+
+print(f"Parameters: {sum(p.numel() for p in model.parameters()) / 1e6:.1f}M")
+# Output: Parameters: 124.4M (same as GPT-2)
+```
+
+---
+
 ## Real-World Use Cases
 
 ### Encoder models (BERT):

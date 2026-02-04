@@ -440,6 +440,584 @@ After forward/backward: Average gradients across GPUs
 
 ---
 
+## Distributed Training Deep Dive
+
+### ZeRO Optimization: Mathematical Foundation
+
+**Problem:** Training 175B parameter model requires ~700GB memory (FP32).
+
+**Memory breakdown per parameter:**
+
+```
+Component               | Memory per Parameter | For 175B model
+------------------------|----------------------|----------------
+Model parameters        | 4 bytes (FP32)       | 700 GB
+Gradients              | 4 bytes              | 700 GB
+Optimizer states (Adam)| 8 bytes (m, v)       | 1400 GB
+Total                  | 16 bytes             | 2.8 TB
+```
+
+**ZeRO partitioning:**
+
+$$
+\text{Memory per GPU} = \frac{\text{Total Memory}}{N_{GPUs}}
+$$
+
+---
+
+### ZeRO Stage Breakdown
+
+**ZeRO-1: Optimizer State Partitioning**
+
+```python
+# Traditional: All GPUs store full optimizer state
+# Memory: 8 bytes/param × N_params
+
+# ZeRO-1: Partition optimizer states
+# Memory per GPU: 8 bytes/param × N_params / N_GPUs
+
+# Example: 175B model, 64 GPUs
+Traditional: 1.4 TB per GPU
+ZeRO-1: 21.9 GB per GPU  # 64x reduction in optimizer memory
+```
+
+**Implementation concept:**
+
+```python
+class ZeRO1Optimizer:
+    def __init__(self, params, rank, world_size):
+        self.rank = rank
+        self.world_size = world_size
+
+        # Each GPU only stores 1/world_size of optimizer states
+        self.param_partition = params[rank::world_size]
+        self.optimizer = Adam(self.param_partition)
+
+    def step(self):
+        # 1. All-reduce gradients (sum across GPUs)
+        for param in all_params:
+            dist.all_reduce(param.grad)
+
+        # 2. Each GPU updates its partition
+        self.optimizer.step()
+
+        # 3. All-gather updated parameters
+        for i in range(self.world_size):
+            dist.broadcast(params[i::world_size], src=i)
+```
+
+**ZeRO-2: Gradient Partitioning**
+
+```python
+# Additional: Partition gradients
+# Memory savings: 4 bytes/param × N_params / N_GPUs
+
+# Example: 175B model, 64 GPUs
+ZeRO-1: 21.9 GB optimizer states
+ZeRO-2: + 10.9 GB gradients saved = 32.8 GB total savings
+```
+
+**ZeRO-3: Parameter Partitioning**
+
+```python
+# Ultimate: Even model parameters are partitioned
+# Each GPU only holds 1/world_size of parameters
+
+class ZeRO3Layer:
+    def __init__(self, layer, rank, world_size):
+        self.rank = rank
+        self.world_size = world_size
+
+        # Only store my partition
+        self.param_partition = self.partition_params(layer.weight)
+
+    def forward(self, x):
+        # All-gather full parameters for forward pass
+        full_param = dist.all_gather(self.param_partition)
+
+        # Compute forward
+        output = F.linear(x, full_param)
+
+        # Discard full_param (free memory)
+        del full_param
+
+        return output
+
+    def backward(self, grad_output):
+        # All-gather parameters again for backward
+        full_param = dist.all_gather(self.param_partition)
+
+        # Compute backward
+        grad = compute_grad(grad_output, full_param)
+
+        # Reduce-scatter: Each GPU gets its gradient partition
+        grad_partition = dist.reduce_scatter(grad)
+
+        return grad_partition
+
+# Memory per GPU: ~16 bytes/param / N_GPUs
+# Example: 175B model, 64 GPUs
+# ZeRO-3: 43.75 GB per GPU (down from 2.8 TB)
+```
+
+---
+
+### Tensor Parallelism: Column and Row Splitting
+
+**Column-parallel linear layer:**
+
+```python
+class ColumnParallelLinear(nn.Module):
+    """
+    Split output dimension across GPUs
+    Weight: (in_features, out_features)
+    Split out_features across world_size GPUs
+    """
+    def __init__(self, in_features, out_features, rank, world_size):
+        super().__init__()
+        self.rank = rank
+        self.world_size = world_size
+
+        # Each GPU holds out_features / world_size columns
+        self.out_features_per_partition = out_features // world_size
+
+        self.weight = nn.Parameter(
+            torch.randn(in_features, self.out_features_per_partition)
+        )
+
+    def forward(self, x):
+        # x: (batch, seq_len, in_features)
+        # output: (batch, seq_len, out_features / world_size)
+
+        # Local matrix multiplication
+        output = F.linear(x, self.weight)
+
+        # No communication needed (each GPU has different output slice)
+        return output
+
+# Usage: Split MLP projection
+# Y = XW where W is split column-wise
+# GPU 0: Y[:, :d/2] = X @ W[:, :d/2]
+# GPU 1: Y[:, d/2:] = X @ W[:, d/2:]
+```
+
+**Row-parallel linear layer:**
+
+```python
+class RowParallelLinear(nn.Module):
+    """
+    Split input dimension across GPUs
+    Weight: (in_features, out_features)
+    Split in_features across world_size GPUs
+    """
+    def __init__(self, in_features, out_features, rank, world_size):
+        super().__init__()
+        self.rank = rank
+        self.world_size = world_size
+
+        # Each GPU holds in_features / world_size rows
+        self.in_features_per_partition = in_features // world_size
+
+        self.weight = nn.Parameter(
+            torch.randn(self.in_features_per_partition, out_features)
+        )
+
+    def forward(self, x):
+        # x: (batch, seq_len, in_features / world_size)
+        # Each GPU computes partial result
+
+        # Local matmul
+        partial_output = F.linear(x, self.weight)
+
+        # All-reduce to sum partial results
+        output = dist.all_reduce(partial_output, op=dist.ReduceOp.SUM)
+
+        return output
+
+# Usage: Combine results after split
+# Y = XW where X is split row-wise
+# GPU 0: Y_partial_0 = X[:, :d/2] @ W[:d/2, :]
+# GPU 1: Y_partial_1 = X[:, d/2:] @ W[d/2:, :]
+# Final: Y = Y_partial_0 + Y_partial_1 (all-reduce)
+```
+
+**Multi-head attention with tensor parallelism:**
+
+```python
+class TensorParallelMultiHeadAttention(nn.Module):
+    """
+    Split attention heads across GPUs
+    """
+    def __init__(self, d_model, num_heads, rank, world_size):
+        super().__init__()
+        assert num_heads % world_size == 0
+
+        self.num_heads = num_heads
+        self.world_size = world_size
+        self.heads_per_partition = num_heads // world_size
+        self.d_k = d_model // num_heads
+
+        # Column-parallel: Split heads
+        self.W_q = ColumnParallelLinear(d_model, d_model, rank, world_size)
+        self.W_k = ColumnParallelLinear(d_model, d_model, rank, world_size)
+        self.W_v = ColumnParallelLinear(d_model, d_model, rank, world_size)
+
+        # Row-parallel: Combine heads
+        self.W_o = RowParallelLinear(d_model, d_model, rank, world_size)
+
+    def forward(self, x):
+        # Each GPU computes subset of heads
+        Q = self.W_q(x)  # Local heads only
+        K = self.W_k(x)
+        V = self.W_v(x)
+
+        # Attention computation (local heads)
+        attn_output = self.attention(Q, K, V)
+
+        # Combine heads across GPUs (all-reduce in W_o)
+        output = self.W_o(attn_output)
+
+        return output
+
+# Communication pattern:
+# 1. W_q, W_k, W_v: No communication (column-parallel)
+# 2. Local attention: No communication
+# 3. W_o: All-reduce (row-parallel)
+# Total: 1 all-reduce per layer
+```
+
+---
+
+### Pipeline Parallelism: GPipe and 1F1B
+
+**Naive pipeline (inefficient):**
+
+```
+GPU 0: [Layer 1-4]   ████____████____
+GPU 1: [Layer 5-8]       ████____████
+GPU 2: [Layer 9-12]          ████____
+GPU 3: [Layer 13-16]             ████
+
+Bubbles (idle time): 50% GPU utilization
+```
+
+**GPipe (improved):**
+
+```python
+# Split batch into microbatches
+batch_size = 64
+num_microbatches = 4
+microbatch_size = 16
+
+# Forward pass: Fill pipeline
+for mb in microbatches:
+    gpu_0_forward(mb)  # → GPU 1
+    gpu_1_forward(mb)  # → GPU 2
+    gpu_2_forward(mb)  # → GPU 3
+    gpu_3_forward(mb)  # → loss
+
+# Backward pass: Drain pipeline
+for mb in reversed(microbatches):
+    gpu_3_backward(mb)  # ← GPU 2
+    gpu_2_backward(mb)  # ← GPU 1
+    gpu_1_backward(mb)  # ← GPU 0
+    gpu_0_backward(mb)
+
+# Update weights (synchronized)
+optimizer.step()
+```
+
+**1F1B (One Forward One Backward) - Most efficient:**
+
+```
+GPU 0: F0 F1 F2 F3 B0 B1 B2 B3
+GPU 1:    F0 F1 F2 F3 B0 B1 B2 B3
+GPU 2:       F0 F1 F2 F3 B0 B1 B2 B3
+GPU 3:          F0 F1 F2 F3 B0 B1 B2 B3
+
+Bubbles reduced to ~20% (vs 50%)
+```
+
+**Implementation:**
+
+```python
+class PipelineParallel:
+    def __init__(self, layers, rank, world_size, num_microbatches=4):
+        self.layers = layers[rank]  # My stage's layers
+        self.rank = rank
+        self.world_size = world_size
+        self.num_microbatches = num_microbatches
+
+    def forward_pass(self, batch):
+        microbatches = torch.chunk(batch, self.num_microbatches)
+
+        for mb_id, mb in enumerate(microbatches):
+            # Forward
+            if self.rank == 0:
+                # First stage: Start from input
+                activations = self.layers(mb)
+            else:
+                # Wait for activations from previous stage
+                activations = self.recv_from_prev_stage()
+                activations = self.layers(activations)
+
+            # Send to next stage
+            if self.rank < self.world_size - 1:
+                self.send_to_next_stage(activations)
+
+            # Start backward as soon as possible (1F1B)
+            if mb_id >= self.world_size - 1 - self.rank:
+                self.backward_pass(mb_id)
+
+    def backward_pass(self, mb_id):
+        if self.rank == self.world_size - 1:
+            # Last stage: Compute loss gradient
+            grad = compute_loss_grad()
+        else:
+            # Wait for gradient from next stage
+            grad = self.recv_grad_from_next_stage()
+
+        # Backward through my layers
+        grad = self.layers.backward(grad)
+
+        # Send gradient to previous stage
+        if self.rank > 0:
+            self.send_grad_to_prev_stage(grad)
+```
+
+---
+
+### 3D Parallelism: Combining Everything
+
+**Megatron-LM style:**
+
+```python
+# Combine all three:
+# - Data parallelism: Across data batches
+# - Tensor parallelism: Within layers
+# - Pipeline parallelism: Across layers
+
+# Example: 512 GPUs training 175B model
+# 8-way data parallel (DP=8)
+# 8-way tensor parallel (TP=8)
+# 8-way pipeline parallel (PP=8)
+# Total: 8 × 8 × 8 = 512 GPUs
+
+class ThreeDParallelism:
+    def __init__(self, dp_size=8, tp_size=8, pp_size=8):
+        self.dp_size = dp_size  # Data parallel
+        self.tp_size = tp_size  # Tensor parallel
+        self.pp_size = pp_size  # Pipeline parallel
+
+        world_size = dp_size * tp_size * pp_size
+        assert world_size == dist.get_world_size()
+
+        # Assign each GPU to a group
+        self.setup_process_groups()
+
+    def setup_process_groups(self):
+        """
+        Create process groups for each parallelism dimension
+        """
+        # Example GPU layout (512 GPUs):
+        # GPU_id = dp_rank * (tp_size * pp_size) + tp_rank * pp_size + pp_rank
+
+        # Data parallel group: GPUs with same model replica
+        # Tensor parallel group: GPUs in same layer, same pipeline stage
+        # Pipeline parallel group: GPUs across pipeline stages
+
+        self.dp_group = dist.new_group(dp_ranks)
+        self.tp_group = dist.new_group(tp_ranks)
+        self.pp_group = dist.new_group(pp_ranks)
+
+# Communication overhead:
+# - Data parallel: All-reduce gradients (once per iteration)
+# - Tensor parallel: All-reduce per layer (many times)
+# - Pipeline parallel: Point-to-point between stages
+#
+# Latency hierarchy:
+# TP (lowest latency) → PP → DP (highest latency)
+#
+# Best practice:
+# - TP: Within node (NVLink/InfiniBand)
+# - PP: Across nodes
+# - DP: Outer dimension
+```
+
+---
+
+### Scaling Laws: Chinchilla and Beyond
+
+**Kaplan Scaling Laws (GPT-3 era, 2020):**
+
+$$
+L(N, D) = \left(\frac{N_c}{N}\right)^{\alpha_N} + \left(\frac{D_c}{D}\right)^{\alpha_D}
+$$
+
+Where:
+
+- $L$ = Loss
+- $N$ = Number of parameters
+- $D$ = Dataset size (tokens)
+- $\alpha_N \approx 0.076$, $\alpha_D \approx 0.095$
+
+**Key insight:** Loss scales as power laws with both model size and data.
+
+---
+
+**Chinchilla Scaling Laws (2022):**
+
+**Optimal allocation of compute:**
+
+$$
+N_{\text{optimal}} \propto C^{0.5}
+$$
+
+$$
+D_{\text{optimal}} \propto C^{0.5}
+$$
+
+Where $C$ = Compute budget (FLOPs)
+
+**Practical rule:**
+
+$$
+D_{\text{optimal}} = 20 \times N
+$$
+
+**Example calculations:**
+
+```python
+def chinchilla_optimal_tokens(params):
+    """
+    Compute optimal training tokens for given parameter count
+    """
+    return 20 * params
+
+# Examples:
+print(f"7B model: {chinchilla_optimal_tokens(7e9) / 1e12:.1f}T tokens")   # 0.14T
+print(f"13B model: {chinchilla_optimal_tokens(13e9) / 1e12:.1f}T tokens")  # 0.26T
+print(f"70B model: {chinchilla_optimal_tokens(70e9) / 1e12:.1f}T tokens")  # 1.4T
+print(f"405B model: {chinchilla_optimal_tokens(405e9) / 1e12:.1f}T tokens") # 8.1T
+
+# Reality check:
+# LLaMA 2 70B: Trained on 2T tokens ✓ (slightly overtrained)
+# GPT-3 175B: Trained on 300B tokens ✗ (severely undertrained)
+# LLaMA 3 405B: Trained on 15T tokens ✓ (overtrained for better quality)
+```
+
+**Compute calculation:**
+
+$$
+C \approx 6ND
+$$
+
+Where:
+
+- $C$ = FLOPs
+- $N$ = Parameters
+- $D$ = Tokens
+
+```python
+def compute_flops(params, tokens):
+    """
+    Estimate FLOPs for training
+    """
+    # Forward pass: 2 * params * tokens (multiply-accumulate)
+    # Backward pass: ~2x forward
+    # Total: ~6 * params * tokens
+    return 6 * params * tokens
+
+# Example: Train LLaMA 2 70B on 2T tokens
+flops = compute_flops(70e9, 2e12)
+print(f"Total FLOPs: {flops:.2e}")  # 8.4e23 FLOPs
+
+# Convert to GPU-days:
+# A100 (80GB): ~312 TFLOPS (BF16)
+a100_flops_per_sec = 312e12
+seconds = flops / a100_flops_per_sec
+gpu_days = seconds / (24 * 3600)
+print(f"GPU-days on A100: {gpu_days:.0f}")  # ~31,000 GPU-days
+
+# With 2048 GPUs: ~15 days training time
+```
+
+---
+
+### Modern Training Best Practices (2025)
+
+**1. Overtrain for quality:**
+
+```
+Chinchilla optimal: 20 × N tokens
+Production reality: 40-100 × N tokens
+
+Why? Better downstream performance worth the extra compute.
+```
+
+**2. Cosine learning rate schedule:**
+
+```python
+def get_cosine_schedule_with_warmup(optimizer, warmup_steps, total_steps):
+    """
+    LR schedule: Warmup → Cosine decay → Min LR
+    """
+    def lr_lambda(current_step):
+        if current_step < warmup_steps:
+            # Linear warmup
+            return float(current_step) / float(max(1, warmup_steps))
+
+        # Cosine decay
+        progress = (current_step - warmup_steps) / (total_steps - warmup_steps)
+        return 0.5 * (1.0 + math.cos(math.pi * progress))
+
+    return LambdaLR(optimizer, lr_lambda)
+
+# Typical values:
+# Peak LR: 1e-4 to 6e-4 (larger models use smaller LR)
+# Warmup: 2000 steps
+# Min LR: 10% of peak LR
+# Decay: Cosine from peak to min over training
+```
+
+**3. Batch size scaling:**
+
+```python
+# Critical batch size (where returns diminish):
+C_critical = (loss_scale ** 2) / (grad_noise_scale)
+
+# Rule of thumb:
+# Start: Small batch size (256-512)
+# Scale up: Increase linearly with #GPUs until critical batch size
+# Large models: 4M-16M tokens per batch
+
+# Example: LLaMA 2 70B
+# Batch size: 4M tokens
+# Context length: 4096
+# Sequences per batch: 4M / 4096 = 976 sequences
+```
+
+**4. Gradient clipping:**
+
+```python
+# Prevent gradient explosions
+torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+```
+
+**5. Weight decay:**
+
+```python
+# AdamW with weight decay
+optimizer = torch.optim.AdamW(
+    model.parameters(),
+    lr=3e-4,
+    betas=(0.9, 0.95),
+    weight_decay=0.1  # Typical for LLMs
+)
+```
+
+---
+
 ## Fine-Tuning LLMs
 
 ### Supervised Fine-Tuning (SFT)
