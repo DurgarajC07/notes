@@ -2,8 +2,8 @@
 
 > **Your comprehensive knowledge base for becoming a Senior/Staff/Principal Database Engineer**
 
-**Last Updated:** February 18, 2026  
-**Overall Progress:** 5% (2/40 folders completed)
+**Last Updated:** February 19, 2026  
+**Overall Progress:** 7.5% (3/40 folders completed)
 
 ---
 
@@ -70,20 +70,21 @@
 - ✅ `07_Domain_Driven_Design.md` - Aggregates, entities, value objects
 - ✅ `README.md` - Section overview
 
-#### `03_SQL_Core/` ⏳ Not Started (0/8 files)
+#### `03_SQL_Core/` ✅ Complete (8/8 files)
 
-**Status:** 🔴 Not Started  
+**Status:** ✅ Complete  
 **Priority:** 🔥 Critical  
-**Target Level:** Junior → Mid-Level
+**Target Level:** Junior → Mid-Level  
+**Completed:** February 19, 2026
 
-- ⏳ `01_DDL_Commands.md` - CREATE, ALTER, DROP, TRUNCATE
-- ⏳ `02_DML_Commands.md` - SELECT, INSERT, UPDATE, DELETE
-- ⏳ `03_DCL_Commands.md` - GRANT, REVOKE, permissions
-- ⏳ `04_TCL_Commands.md` - COMMIT, ROLLBACK, SAVEPOINT
-- ⏳ `05_Subqueries.md` - Correlated, non-correlated, scalar, table
-- ⏳ `06_CTEs.md` - Common table expressions, recursive CTEs
-- ⏳ `07_Joins.md` - INNER, LEFT, RIGHT, FULL, CROSS, self joins
-- ⏳ `README.md` - Section overview
+- ✅ `01_DDL_Commands.md` - CREATE, ALTER, DROP, TRUNCATE
+- ✅ `02_DML_Commands.md` - SELECT, INSERT, UPDATE, DELETE
+- ✅ `03_DCL_Commands.md` - GRANT, REVOKE, permissions
+- ✅ `04_TCL_Commands.md` - COMMIT, ROLLBACK, SAVEPOINT
+- ✅ `05_Subqueries.md` - Correlated, non-correlated, scalar, table
+- ✅ `06_CTEs.md` - Common table expressions, recursive CTEs
+- ✅ `07_Joins.md` - INNER, LEFT, RIGHT, FULL, CROSS, self joins
+- ✅ `README.md` - Section overview
 
 #### `04_Advanced_SQL/` ⏳ Not Started (0/8 files)
 
