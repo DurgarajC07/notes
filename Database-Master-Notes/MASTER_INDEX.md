@@ -2,8 +2,8 @@
 
 > **Your comprehensive knowledge base for becoming a Senior/Staff/Principal Database Engineer**
 
-**Last Updated:** February 19, 2026  
-**Overall Progress:** 7.5% (3/40 folders completed)
+**Last Updated:** February 20, 2026  
+**Overall Progress:** 10% (4/40 folders completed)
 
 ---
 
@@ -86,18 +86,21 @@
 - ✅ `07_Joins.md` - INNER, LEFT, RIGHT, FULL, CROSS, self joins
 - ✅ `README.md` - Section overview
 
-#### `04_Advanced_SQL/` ⏳ Not Started (0/8 files)
+#### `04_Advanced_SQL/` ✅ Complete (8/8 files)
 
-**Status:** 🔴 Not Started  
+**Status:** ✅ Complete  
 **Priority:** 🟠 High  
-**Target Level:** Mid-Level → Senior
+**Target Level:** Mid-Level → Senior  
+**Completed:** February 20, 2026
 
-- ⏳ `01_Window_Functions.md` - ROW_NUMBER, RANK, LAG, LEAD, running totals
-- ⏳ `02_Recursive_Queries.md` - Hierarchical data, graph traversal
-- ⏳ `03_Pivoting_Unpivoting.md` - PIVOT, UNPIVOT, dynamic columns
-- ⏳ `04_JSON_Operations.md` - JSON_EXTRACT, JSON_AGG, JSONB in PostgreSQL
-- ⏳ `05_XML_Operations.md` - XML parsing, XPath, FOR XML
-- ⏳ `06_Full_Text_Search.md` - FTS indexes, ranking, highlighting
+- ✅ `01_Window_Functions.md` - ROW_NUMBER, RANK, LAG, LEAD, running totals
+- ✅ `02_Recursive_Queries.md` - WITH RECURSIVE, hierarchical data, graph traversal
+- ✅ `03_Pivoting_Unpivoting.md` - PIVOT, UNPIVOT, row-column transformations
+- ✅ `04_JSON_Operations.md` - JSON_EXTRACT, JSON_AGG, JSONB in PostgreSQL
+- ✅ `05_XML_Operations.md` - XML parsing, XPath, FOR XML, OPENXML
+- ✅ `06_Full_Text_Search.md` - FTS indexes, tsvector, tsquery, ranking
+- ✅ `07_Spatial_Queries.md` - PostGIS, geography types, spatial indexes
+- ✅ `README.md` - Section overview
 - ⏳ `07_Spatial_Queries.md` - PostGIS, geometry, geography types
 - ⏳ `README.md` - Section overview
 
