@@ -2,8 +2,8 @@
 
 > **Your comprehensive knowledge base for becoming a Senior/Staff/Principal Database Engineer**
 
-**Last Updated:** February 25, 2026  
-**Overall Progress:** 17.5% (7/40 folders completed)
+**Last Updated:** February 26, 2026  
+**Overall Progress:** 20.0% (8/40 folders completed)
 
 ---
 
@@ -155,19 +155,20 @@
 - ✅ `07_Optimistic_Locking.md` - Version columns, timestamp-based, compare-and-swap
 - ✅ `08_README.md` - Section overview, concurrency patterns, decision guides
 
-#### `08_Isolation_Levels_And_Locking/` ⏳ Not Started (0/7 files)
+#### `08_Isolation_Levels_And_Locking/` ✅ Complete (7/7 files)
 
-**Status:** 🔴 Not Started  
-**Priority:** 🟠 High  
-**Target Level:** Mid-Level → Senior
+**Status:** ✅ Complete  
+**Priority:** 🔥 Critical  
+**Target Level:** Mid-Level → Senior  
+**Completed:** February 26, 2026
 
-- ⏳ `01_Read_Uncommitted.md` - Dirty reads, use cases
-- ⏳ `02_Read_Committed.md` - Default in most databases
-- ⏳ `03_Repeatable_Read.md` - Snapshot isolation, phantom reads
-- ⏳ `04_Serializable.md` - Strictest isolation, performance impact
-- ⏳ `05_Phantom_Reads.md` - Range queries, predicate locking
-- ⏳ `06_Lock_Granularity.md` - Row-level vs page-level vs table-level
-- ⏳ `README.md` - Section overview
+- ✅ `01_Read_Uncommitted.md` - Dirty reads, PostgreSQL behavior, performance myths
+- ✅ `02_Read_Committed.md` - Default isolation level, non-repeatable reads
+- ✅ `03_Repeatable_Read.md` - Snapshot isolation, phantom read differences
+- ✅ `04_Serializable.md` - Strictest isolation, SSI vs locks, retry patterns
+- ✅ `05_Phantom_Reads.md` - Range query anomalies, prevention techniques
+- ✅ `06_Lock_Granularity.md` - Row-level vs page-level vs table-level locking
+- ✅ `07_README.md` - Section overview, decision matrix, learning paths
 
 #### `09_Storage_Engines_Internals/` ⏳ Not Started (0/9 files)
 
